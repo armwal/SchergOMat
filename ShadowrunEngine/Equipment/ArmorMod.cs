@@ -149,7 +149,7 @@ namespace Chummer.Backend.Equipment
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("armormod");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -288,7 +288,7 @@ namespace Chummer.Backend.Equipment
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("armormod");
 			objWriter.WriteElementString("name", DisplayNameShort);

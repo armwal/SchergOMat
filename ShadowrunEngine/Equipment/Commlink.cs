@@ -279,7 +279,7 @@ namespace Chummer.Backend.Equipment
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public new void Save(XmlTextWriter objWriter)
+		public new void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("gear");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -335,7 +335,7 @@ namespace Chummer.Backend.Equipment
 		/// Load the Gear from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public new void Load(XmlNode objNode, bool blnCopy = false)
+		public new void Load(IXmlNode objNode, bool blnCopy = false)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -429,7 +429,7 @@ namespace Chummer.Backend.Equipment
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public new void Print(XmlTextWriter objWriter)
+		public new void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("gear");
 			objWriter.WriteElementString("name", DisplayNameShort);

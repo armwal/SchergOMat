@@ -82,7 +82,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="cmsWeapon">ContextMenuStrip to use for Weapons.</param>
 		/// <param name="cmsWeaponAccessory">ContextMenuStrip to use for Accessories.</param>
 		/// <param name="blnCreateChildren">Whether or not child items should be created.</param>
-		public void Create(XmlNode objXmlWeapon, Character objCharacter, TreeNode objNode, ContextMenuStrip cmsWeapon, ContextMenuStrip cmsWeaponAccessory, bool blnCreateChildren = true)
+		public void Create(IXmlNode objXmlWeapon, Character objCharacter, ITreeNode objNode, ContextMenuStrip cmsWeapon, ContextMenuStrip cmsWeaponAccessory, bool blnCreateChildren = true)
 		{
 			_strName = objXmlWeapon["name"].InnerText;
 			_strCategory = objXmlWeapon["category"].InnerText;
@@ -255,7 +255,7 @@ namespace Chummer.Backend.Equipment
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("weapon");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -322,7 +322,7 @@ namespace Chummer.Backend.Equipment
 		/// Load the CharacterAttribute from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode, bool blnCopy = false)
+		public void Load(IXmlNode objNode, bool blnCopy = false)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -457,7 +457,7 @@ namespace Chummer.Backend.Equipment
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			// Find the piece of Gear that created this item if applicable.
 			CommonFunctions objFunctions = new CommonFunctions(_objCharacter);
@@ -3107,7 +3107,7 @@ namespace Chummer.Backend.Equipment
 				return new Clip(Guid.Parse(node["id"].InnerText), int.Parse(node["count"].InnerText));
 			}
 
-			internal void Save(XmlTextWriter writer)
+			internal void Save(IXmlWriter writer)
 			{
 				if (Guid != Guid.Empty || Ammo != 0) //Don't save empty clips, we are recreating them anyway. Save those kb
 				{

@@ -67,7 +67,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("attribute");
 			objWriter.WriteElementString("name", _strAbbrev);
@@ -87,7 +87,7 @@ namespace Chummer
 		/// Load the CharacterAttribute from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_strAbbrev = objNode["name"].InnerText;
 			_intMetatypeMin = Convert.ToInt32(objNode["metatypemin"].InnerText);
@@ -108,7 +108,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("attribute");
 			objWriter.WriteElementString("name", _strAbbrev);
@@ -1170,7 +1170,7 @@ namespace Chummer
 		/// <param name="objWeapons">List of Weapons that should be added to the Character.</param>
 		/// <param name="objWeaponNodes">List of TreeNodes to represent the Weapons added.</param>
 		/// <param name="strForceValue">Force a value to be selected for the Quality.</param>
-		public virtual void Create(XmlNode objXmlQuality, Character objCharacter, QualitySource objQualitySource, TreeNode objNode, List<Weapon> objWeapons, List<TreeNode> objWeaponNodes, string strForceValue = "")
+		public virtual void Create(IXmlNode objXmlQuality, Character objCharacter, QualitySource objQualitySource, ITreeNode objNode, List<Weapon> objWeapons, List<ITreeNode> objWeaponNodes, string strForceValue = "")
 		{
 			_strName = objXmlQuality["name"].InnerText;
             if (objXmlQuality["metagenetic"] != null)
@@ -1336,7 +1336,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public virtual void Save(XmlTextWriter objWriter)
+		public virtual void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("quality");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -1381,7 +1381,7 @@ namespace Chummer
 		/// Load the CharacterAttribute from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public virtual void Load(XmlNode objNode)
+		public virtual void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -1435,7 +1435,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			if (_blnPrint)
 			{
@@ -2125,7 +2125,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("spirit");
 			objWriter.WriteElementString("name", _strName);
@@ -2144,7 +2144,7 @@ namespace Chummer
 		/// Load the Spirit from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_strName = objNode["name"].InnerText;
 			objNode.TryGetField("crittername", out _strCritterName);
@@ -2161,7 +2161,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			// Translate the Critter name if applicable.
 			string strName = _strName;
@@ -2289,7 +2289,7 @@ namespace Chummer
 			objWriter.WriteEndElement();
 		}
 
-		private void PrintPowerInfo(XmlTextWriter objWriter, XmlDocument objXmlDocument, string strPowerName)
+		private void PrintPowerInfo(IXmlWriter objWriter, XmlDocument objXmlDocument, string strPowerName)
 		{
 			XmlNode objXmlPowerNode;
 			string strSource = "";
@@ -2599,7 +2599,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("spell");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -2628,7 +2628,7 @@ namespace Chummer
 		/// Load the Spell from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
             Improvement objImprovement = new Improvement();
             _guiID = Guid.Parse(objNode["guid"].InnerText);
@@ -2720,7 +2720,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("spell");
 			if (_blnLimited)
@@ -3488,7 +3488,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("focus");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -3502,7 +3502,7 @@ namespace Chummer
 		/// Load the Focus from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -3593,7 +3593,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("stackedfocus");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -3610,7 +3610,7 @@ namespace Chummer
 		/// Load the Stacked Focus from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_guiGearId = Guid.Parse(objNode["gearid"].InnerText);
@@ -3868,7 +3868,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("metamagic");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -3891,7 +3891,7 @@ namespace Chummer
 		/// Load the Metamagic from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			Improvement objImprovement = new Improvement();
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
@@ -3929,7 +3929,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("metamagic");
 			objWriter.WriteElementString("name", DisplayNameShort);
@@ -4213,7 +4213,7 @@ namespace Chummer
         /// Save the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Save(XmlTextWriter objWriter)
+        public void Save(IXmlWriter objWriter)
         {
             objWriter.WriteStartElement("art");
             objWriter.WriteElementString("guid", _guiID.ToString());
@@ -4235,7 +4235,7 @@ namespace Chummer
         /// Load the Metamagic from the XmlNode.
         /// </summary>
         /// <param name="objNode">XmlNode to load.</param>
-        public void Load(XmlNode objNode)
+        public void Load(IXmlNode objNode)
         {
             Improvement objImprovement = new Improvement();
             _guiID = Guid.Parse(objNode["guid"].InnerText);
@@ -4265,7 +4265,7 @@ namespace Chummer
         /// Print the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Print(XmlTextWriter objWriter)
+        public void Print(IXmlWriter objWriter)
         {
             objWriter.WriteStartElement("art");
             objWriter.WriteElementString("name", DisplayNameShort);
@@ -4514,7 +4514,7 @@ namespace Chummer
         /// Save the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Save(XmlTextWriter objWriter)
+        public void Save(IXmlWriter objWriter)
         {
             objWriter.WriteStartElement("enhancement");
             objWriter.WriteElementString("guid", _guiID.ToString());
@@ -4536,7 +4536,7 @@ namespace Chummer
         /// Load the Enhancement from the XmlNode.
         /// </summary>
         /// <param name="objNode">XmlNode to load.</param>
-        public void Load(XmlNode objNode)
+        public void Load(IXmlNode objNode)
         {
             Improvement objImprovement = new Improvement();
             _guiID = Guid.Parse(objNode["guid"].InnerText);
@@ -4566,7 +4566,7 @@ namespace Chummer
         /// Print the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Print(XmlTextWriter objWriter)
+        public void Print(IXmlWriter objWriter)
         {
             objWriter.WriteStartElement("enhancement");
             objWriter.WriteElementString("name", DisplayNameShort);
@@ -4807,7 +4807,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("power");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -4846,7 +4846,7 @@ namespace Chummer
 		/// Load the Power from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -4943,7 +4943,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("power");
 			objWriter.WriteElementString("name", DisplayNameShort);
@@ -5512,7 +5512,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("complexform");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -5532,7 +5532,7 @@ namespace Chummer
 		/// Load the Complex Form from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			try
 			{
@@ -5597,7 +5597,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("complexform");
 			objWriter.WriteElementString("name", DisplayNameShort);
@@ -5840,7 +5840,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("martialart");
 			objWriter.WriteElementString("name", _strName);
@@ -5863,7 +5863,7 @@ namespace Chummer
 		/// Load the Martial Art from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_strName = objNode["name"].InnerText;
 			_strSource = objNode["source"].InnerText;
@@ -5895,7 +5895,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("martialart");
 			objWriter.WriteElementString("name", DisplayNameShort);
@@ -6116,7 +6116,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("martialartadvantage");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -6132,7 +6132,7 @@ namespace Chummer
 		/// Load the Martial Art Advantage from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -6165,7 +6165,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("martialartadvantage");
 			objWriter.WriteElementString("name", DisplayNameShort);
@@ -6325,7 +6325,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("martialartmaneuver");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -6341,7 +6341,7 @@ namespace Chummer
 		/// Load the Martial Art Maneuver from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -6360,7 +6360,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("martialartmaneuver");
 			objWriter.WriteElementString("name", DisplayNameShort);
@@ -6570,7 +6570,7 @@ namespace Chummer
         /// Save the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Save(XmlTextWriter objWriter)
+        public void Save(IXmlWriter objWriter)
         {
             objWriter.WriteStartElement("limitmodifier");
             objWriter.WriteElementString("guid", _guiID.ToString());
@@ -6586,7 +6586,7 @@ namespace Chummer
         /// Load the Skill Limit Modifier from the XmlNode.
         /// </summary>
         /// <param name="objNode">XmlNode to load.</param>
-        public void Load(XmlNode objNode)
+        public void Load(IXmlNode objNode)
         {
             _guiID = Guid.Parse(objNode["guid"].InnerText);
             _strName = objNode["name"].InnerText;
@@ -6612,7 +6612,7 @@ namespace Chummer
         /// Print the object's XML to the XmlWriter.
         /// </summary>
         /// <param name="objWriter">XmlTextWriter to write with.</param>
-        public void Print(XmlTextWriter objWriter)
+        public void Print(IXmlWriter objWriter)
         {
             objWriter.WriteStartElement("limitmodifier");
             objWriter.WriteElementString("name", DisplayName);
@@ -6822,7 +6822,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("contact");
 			objWriter.WriteElementString("name", _strName);
@@ -6855,7 +6855,7 @@ namespace Chummer
 		/// Load the Contact from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_strName = objNode["name"].InnerText;
 			objNode.TryGetField("role", out _strRole);
@@ -6887,7 +6887,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("contact");
 			objWriter.WriteElementString("name", _strName);
@@ -7260,7 +7260,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("critterpower");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -7288,7 +7288,7 @@ namespace Chummer
 		/// Load the Critter Power from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -7328,7 +7328,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("critterpower");
 			objWriter.WriteElementString("name", DisplayNameShort);
@@ -7797,7 +7797,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("initiationgrade");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -7814,7 +7814,7 @@ namespace Chummer
 		/// Load the Initiation Grade from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_blnTechnomancer = Convert.ToBoolean(objNode["res"].InnerText);
@@ -8035,7 +8035,7 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("week");
 			objWriter.WriteElementString("guid", _guiID.ToString());
@@ -8049,7 +8049,7 @@ namespace Chummer
 		/// Load the Calendar Week from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_intYear = Convert.ToInt32(objNode["year"].InnerText);
@@ -8061,7 +8061,7 @@ namespace Chummer
 		/// Print the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("week");
 			objWriter.WriteElementString("year", _intYear.ToString());

@@ -19,19 +19,17 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Windows.Forms;
 using System.Xml;
-using System.Xml.XPath;
-using Chummer.Annotations;
 using Chummer.Backend;
 using Chummer.Backend.Equipment;
 using Chummer.Skills;
 using System.Reflection;
+using System.Xml.Linq;
+using System.Globalization;
 
 // MAGEnabledChanged Event Handler
 public delegate void MAGEnabledChangedHandler(Chummer.Character sender);
@@ -96,8 +94,8 @@ namespace Chummer
     /// </summary>
     public class Character : INotifyPropertyChanged
     {
-	    private XmlNode oldSkillsBackup;
-	    private XmlNode oldSKillGroupBackup;
+	    //private XNode oldSkillsBackup;
+	    //private XNode oldSKillGroupBackup;
 
         private readonly ImprovementManager _objImprovementManager;
         private readonly CharacterOptions _objOptions;
@@ -296,8 +294,10 @@ namespace Chummer
         private List<CalendarWeek> _lstCalendar = new List<CalendarWeek>();
         //private List<LifeModule> _lstLifeModules = new List<LifeModule>();
 
+        private IDisplayFactory displayFactory;
+        private IXmlDocumentFactory xmlFactory;
         // Character Version
-        private string _strVersionCreated = Application.ProductVersion.ToString().Replace("0.0.", string.Empty);
+        private string _strVersionCreated = "5.139";
 
 		// Events.
 		public event HomeNodeChangedHandler HomeNodeChanged;
@@ -326,7 +326,7 @@ namespace Chummer
         /// <summary>
         /// Character.
         /// </summary>
-        public Character()
+        public Character(IDisplayFactory displayFactory, IXmlDocumentFactory xmlFactory)
         {
             _attBOD._objCharacter = this;
             _attAGI._objCharacter = this;
@@ -346,20 +346,23 @@ namespace Chummer
 			_objOptions = new CharacterOptions(this);
 			SkillsSection = new SkillsSection(this);
 			SkillsSection.Reset();
+
+            this.displayFactory = displayFactory;
+            this.xmlFactory = xmlFactory;
         }
 
         /// <summary>
         /// Save the Character to an XML file.
         /// </summary>
-        public void Save()
+        public void Save(IXmlWriter objWriter)
         {
-            FileStream objStream = new FileStream(_strFileName, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
-	        XmlTextWriter objWriter = new XmlTextWriter(objStream, Encoding.UTF8)
-	        {
-		        Formatting = Formatting.Indented,
-		        Indentation = 1,
-		        IndentChar = '\t'
-	        };
+         //   FileStream objStream = new FileStream(_strFileName, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+	        //XmlTextWriter objWriter = new XmlTextWriter(objStream, Encoding.UTF8)
+	        //{
+		       // Formatting = Formatting.Indented,
+		       // Indentation = 1,
+		       // IndentChar = '\t'
+	        //};
 	        _lstSources.Clear();
 	        objWriter.WriteStartDocument();
 
@@ -369,7 +372,7 @@ namespace Chummer
             // <createdversion />
             objWriter.WriteElementString("createdversion", _strVersionCreated);
             // <appversion />
-            objWriter.WriteElementString("appversion", Application.ProductVersion.ToString().Replace("0.0.", string.Empty));
+            objWriter.WriteElementString("appversion", _strVersionCreated);
             // <gameedition />
             objWriter.WriteElementString("gameedition", "SR5");
 
@@ -417,7 +420,7 @@ namespace Chummer
             objWriter.WriteElementString("priorityskillgroup", _strSkillGroup);
 
             // <essenceatspecialstart />
-            objWriter.WriteElementString("essenceatspecialstart", _decEssenceAtSpecialStart.ToString(GlobalOptions.Instance.CultureInfo));
+            objWriter.WriteElementString("essenceatspecialstart", _decEssenceAtSpecialStart.ToString(CultureInfo.InvariantCulture));
 
             // <name />
             objWriter.WriteElementString("name", _strName);
@@ -645,8 +648,8 @@ namespace Chummer
 			SkillsSection.Save(objWriter);
 
 			//Write copy of old skill groups, to not totally fuck a file if error
-			oldSKillGroupBackup?.WriteTo(objWriter);
-			oldSkillsBackup?.WriteTo(objWriter);
+			//oldSKillGroupBackup?.WriteTo(objWriter);
+			//oldSkillsBackup?.WriteTo(objWriter);
 
 			///////////////////////////////////////////SKILLS
 			/// 
@@ -938,21 +941,21 @@ namespace Chummer
 
             objWriter.WriteEndDocument();
             objWriter.Close();
-            objStream.Close();
+            //objStream.Close();
         }
 
         /// <summary>
         /// Load the Character from an XML file.
         /// </summary>
-        public bool Load()
+        public bool Load(IXmlDocument objXmlDocument, IMessageDisplay messageDisplay)
         {
-			Timekeeper.Start("load_xml");
-            XmlDocument objXmlDocument = new XmlDocument();
+			//Timekeeper.Start("load_xml");
+            //XmlDocument objXmlDocument = new XmlDocument();
             objXmlDocument.Load(_strFileName);
-	        Timekeeper.Finish("load_xml");
-			Timekeeper.Start("load_char_misc");
-            XmlNode objXmlCharacter = objXmlDocument.SelectSingleNode("/character");
-            XmlNodeList objXmlNodeList;
+	        //Timekeeper.Finish("load_xml");
+			//Timekeeper.Start("load_char_misc");
+            IXmlNode objXmlCharacter = objXmlDocument.SelectSingleNode("/character");
+            IXmlNodeList objXmlNodeList;
 
             try
             {
@@ -971,9 +974,11 @@ namespace Chummer
             {
                 if (objXmlCharacter["gameedition"].InnerText != string.Empty && objXmlCharacter["gameedition"].InnerText != "SR5")
                 {
-				    MessageBox.Show(LanguageManager.Instance.GetString("Message_OutdatedChummerSave"),
-					    LanguageManager.Instance.GetString("MessageTitle_IncorrectGameVersion"), MessageBoxButtons.YesNo,
-					    MessageBoxIcon.Error);
+                    //MessageBox.Show(LanguageManager.Instance.GetString("Message_OutdatedChummerSave"),
+                    // LanguageManager.Instance.GetString("MessageTitle_IncorrectGameVersion"), MessageBoxButtons.YesNo,
+                    // MessageBoxIcon.Error);
+                    messageDisplay.ShowError(LanguageManager.Instance.GetString("Message_OutdatedChummerSave"),
+                        LanguageManager.Instance.GetString("MessageTitle_IncorrectGameVersion"));
                     return false;
                 }
             }
@@ -982,28 +987,28 @@ namespace Chummer
             }
 
             //Check to see if the character was created in a version of Chummer later than the currently installed one.
-            if (objXmlCharacter["appversion"].InnerText != string.Empty)
-            {
-                Version verSavedVersion = new Version();
-                var strVersion = objXmlCharacter["appversion"].InnerText;
-                if (strVersion.StartsWith("0."))
-                {
-                    strVersion = strVersion.Substring(2);
-                }
-                Version.TryParse(strVersion, out verSavedVersion);
-                Version verCurrentversion = Assembly.GetExecutingAssembly().GetName().Version;
-                int intResult = verCurrentversion.CompareTo(verSavedVersion);
-                if (intResult == -1)
-                {
-                    string strMessage = LanguageManager.Instance.GetString("Message_OutdatedChummerSave").Replace("{0}", verSavedVersion.ToString()).Replace("{1}", verCurrentversion.ToString());
-                    DialogResult result = MessageBox.Show(strMessage, LanguageManager.Instance.GetString("MessageTitle_IncorrectGameVersion"), MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+            //if (objXmlCharacter["appversion"].InnerText != string.Empty)
+            //{
+            //    Version verSavedVersion = new Version();
+            //    var strVersion = objXmlCharacter["appversion"].InnerText;
+            //    if (strVersion.StartsWith("0."))
+            //    {
+            //        strVersion = strVersion.Substring(2);
+            //    }
+            //    Version.TryParse(strVersion, out verSavedVersion);
+            //    Version verCurrentversion = Assembly.GetExecutingAssembly().GetName().Version;
+            //    int intResult = verCurrentversion.CompareTo(verSavedVersion);
+            //    if (intResult == -1)
+            //    {
+            //        string strMessage = LanguageManager.Instance.GetString("Message_OutdatedChummerSave").Replace("{0}", verSavedVersion.ToString()).Replace("{1}", verCurrentversion.ToString());
+            //        DialogResult result = MessageBox.Show(strMessage, LanguageManager.Instance.GetString("MessageTitle_IncorrectGameVersion"), MessageBoxButtons.YesNo, MessageBoxIcon.Error);
 
-                    if (result != DialogResult.Yes)
-                    {
-                        return false;
-                    }
-                }
-            }
+            //        if (result != DialogResult.Yes)
+            //        {
+            //            return false;
+            //        }
+            //    }
+            //}
 
             // Get the name of the settings file in use if possible.
             objXmlCharacter.TryGetField("settings", out _strSettingsFileName);
@@ -1018,7 +1023,7 @@ namespace Chummer
 					bool blnMissingBooks = false;
 					string strMissingBooks = "";
 					//Does the list of enabled books contain the current item?
-					foreach (XmlNode objXmlNode in objXmlCharacter["sources"].Cast<XmlNode>().Where(objXmlNode => !_objOptions.Books.Contains(objXmlNode.InnerText)))
+					foreach (IXmlNode objXmlNode in objXmlCharacter["sources"].Cast<IXmlNode>().Where(objXmlNode => !_objOptions.Books.Contains(objXmlNode.InnerText)))
 					{
 						strMissingBooks += (objXmlNode.InnerText + ";");
 						blnMissingBooks = true;
@@ -1031,8 +1036,9 @@ namespace Chummer
 						"This character was created with the following books that are not enabled:\n {0} \nThis may cause issues. Do you want to continue loading the character?"
 							.Replace("{0}", TranslatedBookList(strMissingBooks));
                     if (
-							MessageBox.Show(strMessage, "Missing Books",
-								MessageBoxButtons.YesNo) == DialogResult.No)
+                        messageDisplay.AskQuestion(strMessage, "Missing Books") == false)
+							//MessageBox.Show(strMessage, "Missing Books",
+							//	MessageBoxButtons.YesNo) == DialogResult.No)
 						{
 							return false;
 						}
@@ -1042,7 +1048,7 @@ namespace Chummer
 			try
             {
 			    _decEssenceAtSpecialStart = Convert.ToDecimal(objXmlCharacter["essenceatspecialstart"].InnerText,
-				    GlobalOptions.Instance.CultureInfo);
+				    CultureInfo.InvariantCulture);
                 // fix to work around a mistake made when saving decimal values in previous versions.
                 if (_decEssenceAtSpecialStart > EssenceMaximum)
                     _decEssenceAtSpecialStart /= 10;
@@ -1155,8 +1161,8 @@ namespace Chummer
 
 		    objXmlCharacter.TryGetField("buildmethod", CharacterBuildMethod.TryParse, out _objBuildMethod);
 		    
-            _decNuyenBP = Convert.ToDecimal(objXmlCharacter["nuyenbp"].InnerText, GlobalOptions.Instance.CultureInfo);
-            _decNuyenMaximumBP = Convert.ToDecimal(objXmlCharacter["nuyenmaxbp"].InnerText, GlobalOptions.Instance.CultureInfo);
+            _decNuyenBP = Convert.ToDecimal(objXmlCharacter["nuyenbp"].InnerText, CultureInfo.InvariantCulture);
+            _decNuyenMaximumBP = Convert.ToDecimal(objXmlCharacter["nuyenmaxbp"].InnerText, CultureInfo.InvariantCulture);
             _blnAdeptEnabled = Convert.ToBoolean(objXmlCharacter["adept"].InnerText);
             _blnMagicianEnabled = Convert.ToBoolean(objXmlCharacter["magician"].InnerText);
             _blnTechnomancerEnabled = Convert.ToBoolean(objXmlCharacter["technomancer"].InnerText);
@@ -1188,23 +1194,23 @@ namespace Chummer
             catch
             {
             }
-	        Timekeeper.Finish("load_char_misc");
-            Timekeeper.Start("load_char_imp");
+	        //Timekeeper.Finish("load_char_misc");
+         //   Timekeeper.Start("load_char_imp");
             // Improvements.
-            XmlNodeList objXmlImprovementList = objXmlDocument.SelectNodes("/character/improvements/improvement");
-            foreach (XmlNode objXmlImprovement in objXmlImprovementList)
+            IXmlNodeList objXmlImprovementList = objXmlDocument.SelectNodes("/character/improvements/improvement");
+            foreach (IXmlNode objXmlImprovement in objXmlImprovementList)
             {
                 Improvement objImprovement = new Improvement();
                 objImprovement.Load(objXmlImprovement);
                 _lstImprovements.Add(objImprovement);
             }
-            Timekeeper.Finish("load_char_imp");
+            //Timekeeper.Finish("load_char_imp");
             
-            Timekeeper.Start("load_char_quality");
+            //Timekeeper.Start("load_char_quality");
             // Qualities
             objXmlNodeList = objXmlDocument.SelectNodes("/character/qualities/quality");
             bool blnHasOldQualities = false;
-            foreach (XmlNode objXmlQuality in objXmlNodeList)
+            foreach (IXmlNode objXmlQuality in objXmlNodeList)
             {
                 if (objXmlQuality["name"] != null)
                 {
@@ -1221,8 +1227,8 @@ namespace Chummer
             // If old Qualities are in use, they need to be converted before we can continue.
             if (blnHasOldQualities)
                 ConvertOldQualities(objXmlNodeList);
-	        Timekeeper.Finish("load_char_quality");
-			Timekeeper.Start("load_char_attrib");
+	  //      Timekeeper.Finish("load_char_quality");
+			//Timekeeper.Start("load_char_attrib");
             // Attributes.
             objXmlCharacter = objXmlDocument.SelectSingleNode("/character/attributes/attribute[name = \"BOD\"]");
             _attBOD.Load(objXmlCharacter);
@@ -1263,8 +1269,8 @@ namespace Chummer
             {
             }
 
-	        Timekeeper.Finish("load_char_attrib");
-			Timekeeper.Start("load_char_misc2");
+	  //      Timekeeper.Finish("load_char_attrib");
+			//Timekeeper.Start("load_char_misc2");
 
             
 		    // Attempt to load the split MAG CharacterAttribute information for Mystic Adepts.
@@ -1310,13 +1316,13 @@ namespace Chummer
             catch
             {
             }
-	        Timekeeper.Finish("load_char_misc2");
-		    Timekeeper.Start("load_char_skills");  //slightly messy
+	     //   Timekeeper.Finish("load_char_misc2");
+		    //Timekeeper.Start("load_char_skills");  //slightly messy
 
-	        oldSkillsBackup = objXmlDocument.SelectSingleNode("/character/skills")?.Clone();
-		    oldSKillGroupBackup = objXmlDocument.SelectSingleNode("/character/skillgroups")?.Clone();
+	     //   oldSkillsBackup = objXmlDocument.SelectSingleNode("/character/skills")?.Clone();
+		    //oldSKillGroupBackup = objXmlDocument.SelectSingleNode("/character/skillgroups")?.Clone();
 
-	        XmlNode SkillNode = objXmlDocument.SelectSingleNode("/character/newskills");
+	        IXmlNode SkillNode = objXmlDocument.SelectSingleNode("/character/newskills");
 			if (SkillNode != null)
 	        {
 				SkillsSection.Load(SkillNode);
@@ -1326,96 +1332,96 @@ namespace Chummer
 				SkillsSection.Load(objXmlCharacter, true);
 		    }
 	        
-			Timekeeper.Start("load_char_contacts");
+			//Timekeeper.Start("load_char_contacts");
 
 
 			// Contacts.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/contacts/contact");
-            foreach (XmlNode objXmlContact in objXmlNodeList)
+            foreach (IXmlNode objXmlContact in objXmlNodeList)
             {
                 Contact objContact = new Contact(this);
                 objContact.Load(objXmlContact);
                 _lstContacts.Add(objContact);
             }
 
-	        Timekeeper.Finish("load_char_contacts");
-			Timekeeper.Start("load_char_armor");
+	  //      Timekeeper.Finish("load_char_contacts");
+			//Timekeeper.Start("load_char_armor");
             // Armor.
             objXmlNodeList = objXmlDocument.SelectNodes("/character/armors/armor");
-            foreach (XmlNode objXmlArmor in objXmlNodeList)
+            foreach (IXmlNode objXmlArmor in objXmlNodeList)
             {
                 Armor objArmor = new Armor(this);
                 objArmor.Load(objXmlArmor);
                 _lstArmor.Add(objArmor);
             }
-			Timekeeper.Finish("load_char_armor");
-			Timekeeper.Start("load_char_weapons");
+			//Timekeeper.Finish("load_char_armor");
+			//Timekeeper.Start("load_char_weapons");
 
 			// Weapons.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/weapons/weapon");
-            foreach (XmlNode objXmlWeapon in objXmlNodeList)
+            foreach (IXmlNode objXmlWeapon in objXmlNodeList)
             {
                 Weapon objWeapon = new Weapon(this);
                 objWeapon.Load(objXmlWeapon);
                 _lstWeapons.Add(objWeapon);
             }
 
-			Timekeeper.Finish("load_char_weapons");
-			Timekeeper.Start("load_char_ware");
+			//Timekeeper.Finish("load_char_weapons");
+			//Timekeeper.Start("load_char_ware");
 
 			// Cyberware/Bioware.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/cyberwares/cyberware");
-            foreach (XmlNode objXmlCyberware in objXmlNodeList)
+            foreach (IXmlNode objXmlCyberware in objXmlNodeList)
             {
                 Cyberware objCyberware = new Cyberware(this);
                 objCyberware.Load(objXmlCyberware);
                 _lstCyberware.Add(objCyberware);
             }
 
-			Timekeeper.Finish("load_char_ware");
-			Timekeeper.Start("load_char_spells");
+			//Timekeeper.Finish("load_char_ware");
+			//Timekeeper.Start("load_char_spells");
 
 			// Spells.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/spells/spell");
-            foreach (XmlNode objXmlSpell in objXmlNodeList)
+            foreach (IXmlNode objXmlSpell in objXmlNodeList)
             {
                 Spell objSpell = new Spell(this);
                 objSpell.Load(objXmlSpell);
                 _lstSpells.Add(objSpell);
             }
 
-			Timekeeper.Finish("load_char_spells");
-			Timekeeper.Start("load_char_foci");
+			//Timekeeper.Finish("load_char_spells");
+			//Timekeeper.Start("load_char_foci");
 
 			// Foci.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/foci/focus");
-            foreach (XmlNode objXmlFocus in objXmlNodeList)
+            foreach (IXmlNode objXmlFocus in objXmlNodeList)
             {
                 Focus objFocus = new Focus();
                 objFocus.Load(objXmlFocus);
                 _lstFoci.Add(objFocus);
             }
 
-			Timekeeper.Finish("load_char_foci");
-			Timekeeper.Start("load_char_sfoci");
+			//Timekeeper.Finish("load_char_foci");
+			//Timekeeper.Start("load_char_sfoci");
 
 			// Stacked Foci.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/stackedfoci/stackedfocus");
-            foreach (XmlNode objXmlStack in objXmlNodeList)
+            foreach (IXmlNode objXmlStack in objXmlNodeList)
             {
                 StackedFocus objStack = new StackedFocus(this);
                 objStack.Load(objXmlStack);
                 _lstStackedFoci.Add(objStack);
             }
 
-			Timekeeper.Finish("load_char_sfoci");
-			Timekeeper.Start("load_char_powers");
+			//Timekeeper.Finish("load_char_sfoci");
+			//Timekeeper.Start("load_char_powers");
 
 			// Powers.
 			List<ListItem> lstPowerOrder = new List<ListItem>();
             objXmlNodeList = objXmlDocument.SelectNodes("/character/powers/power");
             // Sort the Powers in alphabetical order.
-            foreach (XmlNode objXmlPower in objXmlNodeList)
+            foreach (IXmlNode objXmlPower in objXmlNodeList)
             {
                 ListItem objGroup = new ListItem();
                 objGroup.Value = objXmlPower["extra"].InnerText;
@@ -1429,89 +1435,89 @@ namespace Chummer
             foreach (ListItem objItem in lstPowerOrder)
             {
                 Power objPower = new Power(this);
-                XmlNode objNode = objXmlDocument.SelectSingleNode("/character/powers/power[name = " + CleanXPath(objItem.Name) + " and extra = " + CleanXPath(objItem.Value) + "]");
+                IXmlNode objNode = objXmlDocument.SelectSingleNode("/character/powers/power[name = " + CleanXPath(objItem.Name) + " and extra = " + CleanXPath(objItem.Value) + "]");
                 objPower.Load(objNode);
                 _lstPowers.Add(objPower);
             }
 
-			Timekeeper.Finish("load_char_powers");
-			Timekeeper.Start("load_char_spirits");
+			//Timekeeper.Finish("load_char_powers");
+			//Timekeeper.Start("load_char_spirits");
 
 			// Spirits/Sprites.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/spirits/spirit");
-            foreach (XmlNode objXmlSpirit in objXmlNodeList)
+            foreach (IXmlNode objXmlSpirit in objXmlNodeList)
             {
                 Spirit objSpirit = new Spirit(this);
                 objSpirit.Load(objXmlSpirit);
                 _lstSpirits.Add(objSpirit);
             }
 
-			Timekeeper.Finish("load_char_spirits");
-			Timekeeper.Start("load_char_complex");
+			//Timekeeper.Finish("load_char_spirits");
+			//Timekeeper.Start("load_char_complex");
 
 			// Compex Forms/Technomancer Programs.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/complexforms/complexform");
-            foreach (XmlNode objXmlProgram in objXmlNodeList)
+            foreach (IXmlNode objXmlProgram in objXmlNodeList)
             {
                 ComplexForm objProgram = new ComplexForm(this);
                 objProgram.Load(objXmlProgram);
                 _lstComplexForms.Add(objProgram);
             }
 
-			Timekeeper.Finish("load_char_complex");
-			Timekeeper.Start("load_char_marts");
+			//Timekeeper.Finish("load_char_complex");
+			//Timekeeper.Start("load_char_marts");
 
 			// Martial Arts.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/martialarts/martialart");
-            foreach (XmlNode objXmlArt in objXmlNodeList)
+            foreach (IXmlNode objXmlArt in objXmlNodeList)
             {
                 MartialArt objMartialArt = new MartialArt(this);
                 objMartialArt.Load(objXmlArt);
                 _lstMartialArts.Add(objMartialArt);
             }
 
-			Timekeeper.Finish("load_char_marts");
-			Timekeeper.Start("load_char_mam");
+			//Timekeeper.Finish("load_char_marts");
+			//Timekeeper.Start("load_char_mam");
 
 			// Martial Art Maneuvers.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/martialartmaneuvers/martialartmaneuver");
-            foreach (XmlNode objXmlManeuver in objXmlNodeList)
+            foreach (IXmlNode objXmlManeuver in objXmlNodeList)
             {
                 MartialArtManeuver objManeuver = new MartialArtManeuver(this);
                 objManeuver.Load(objXmlManeuver);
                 _lstMartialArtManeuvers.Add(objManeuver);
             }
 
-			Timekeeper.Finish("load_char_mam");
-			Timekeeper.Start("load_char_mod");
+			//Timekeeper.Finish("load_char_mam");
+			//Timekeeper.Start("load_char_mod");
 
 			// Limit Modifiers.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/limitmodifiers/limitmodifier");
-            foreach (XmlNode objXmlLimit in objXmlNodeList)
+            foreach (IXmlNode objXmlLimit in objXmlNodeList)
             {
                 LimitModifier obLimitModifier = new LimitModifier(this);
                 obLimitModifier.Load(objXmlLimit);
                 _lstLimitModifiers.Add(obLimitModifier);
             }
 
-			Timekeeper.Finish("load_char_mod");
-			Timekeeper.Start("load_char_lifestyle");
+			//Timekeeper.Finish("load_char_mod");
+			//Timekeeper.Start("load_char_lifestyle");
 
 			// Lifestyles.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/lifestyles/lifestyle");
-            foreach (XmlNode objXmlLifestyle in objXmlNodeList)
+            foreach (IXmlNode objXmlLifestyle in objXmlNodeList)
             {
                 Lifestyle objLifestyle = new Lifestyle(this);
                 objLifestyle.Load(objXmlLifestyle);
                 _lstLifestyles.Add(objLifestyle);
             }
 
-			Timekeeper.Finish("load_char_lifestyle");
-			Timekeeper.Start("load_char_gear");
+			//Timekeeper.Finish("load_char_lifestyle");
+			//Timekeeper.Start("load_char_gear");
 
 			// <gears>
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/gears/gear");
-            foreach (XmlNode objXmlGear in objXmlNodeList)
+            foreach (IXmlNode objXmlGear in objXmlNodeList)
             {
                 switch (objXmlGear["category"].InnerText)
                 {
@@ -1530,143 +1536,143 @@ namespace Chummer
                 }
             }
 
-			Timekeeper.Finish("load_char_gear");
-			Timekeeper.Start("load_char_car");
+			//Timekeeper.Finish("load_char_gear");
+			//Timekeeper.Start("load_char_car");
 
 			// Vehicles.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/vehicles/vehicle");
-            foreach (XmlNode objXmlVehicle in objXmlNodeList)
+            foreach (IXmlNode objXmlVehicle in objXmlNodeList)
             {
                 Vehicle objVehicle = new Vehicle(this);
                 objVehicle.Load(objXmlVehicle);
                 _lstVehicles.Add(objVehicle);
             }
 
-			Timekeeper.Finish("load_char_car");
-			Timekeeper.Start("load_char_mmagic");
+			//Timekeeper.Finish("load_char_car");
+			//Timekeeper.Start("load_char_mmagic");
 			// Metamagics/Echoes.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/metamagics/metamagic");
-            foreach (XmlNode objXmlMetamagic in objXmlNodeList)
+            foreach (IXmlNode objXmlMetamagic in objXmlNodeList)
             {
                 Metamagic objMetamagic = new Metamagic(this);
                 objMetamagic.Load(objXmlMetamagic);
                 _lstMetamagics.Add(objMetamagic);
             }
 
-			Timekeeper.Finish("load_char_mmagic");
-			Timekeeper.Start("load_char_arts");
+			//Timekeeper.Finish("load_char_mmagic");
+			//Timekeeper.Start("load_char_arts");
 
 			// Arts
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/arts/art");
-            foreach (XmlNode objXmlArt in objXmlNodeList)
+            foreach (IXmlNode objXmlArt in objXmlNodeList)
             {
                 Art objArt = new Art(this);
                 objArt.Load(objXmlArt);
                 _lstArts.Add(objArt);
             }
 
-			Timekeeper.Finish("load_char_arts");
-			Timekeeper.Start("load_char_ench");
+			//Timekeeper.Finish("load_char_arts");
+			//Timekeeper.Start("load_char_ench");
 
 			// Enhancements
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/enhancements/enhancement");
-            foreach (XmlNode objXmlEnhancement in objXmlNodeList)
+            foreach (IXmlNode objXmlEnhancement in objXmlNodeList)
             {
                 Enhancement objEnhancement = new Enhancement(this);
                 objEnhancement.Load(objXmlEnhancement);
                 _lstEnhancements.Add(objEnhancement);
             }
 
-			Timekeeper.Finish("load_char_ench");
-			Timekeeper.Start("load_char_cpow");
+			//Timekeeper.Finish("load_char_ench");
+			//Timekeeper.Start("load_char_cpow");
 
 			// Critter Powers.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/critterpowers/critterpower");
-            foreach (XmlNode objXmlPower in objXmlNodeList)
+            foreach (IXmlNode objXmlPower in objXmlNodeList)
             {
                 CritterPower objPower = new CritterPower(this);
                 objPower.Load(objXmlPower);
                 _lstCritterPowers.Add(objPower);
             }
 
-			Timekeeper.Finish("load_char_cpow");
-			Timekeeper.Start("load_char_init");
+			//Timekeeper.Finish("load_char_cpow");
+			//Timekeeper.Start("load_char_init");
 
 			// Initiation Grades.
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/initiationgrades/initiationgrade");
-            foreach (XmlNode objXmlGrade in objXmlNodeList)
+            foreach (IXmlNode objXmlGrade in objXmlNodeList)
             {
                 InitiationGrade objGrade = new InitiationGrade(this);
                 objGrade.Load(objXmlGrade);
                 _lstInitiationGrades.Add(objGrade);
             }
 
-			Timekeeper.Finish("load_char_init");
-			Timekeeper.Start("load_char_elog");
+			//Timekeeper.Finish("load_char_init");
+			//Timekeeper.Start("load_char_elog");
 
 			// Expense Log Entries.
-			XmlNodeList objXmlExpenseList = objXmlDocument.SelectNodes("/character/expenses/expense");
-            foreach (XmlNode objXmlExpense in objXmlExpenseList)
+			IXmlNodeList objXmlExpenseList = objXmlDocument.SelectNodes("/character/expenses/expense");
+            foreach (IXmlNode objXmlExpense in objXmlExpenseList)
             {
                 ExpenseLogEntry objExpenseLogEntry = new ExpenseLogEntry();
                 objExpenseLogEntry.Load(objXmlExpense);
                 _lstExpenseLog.Add(objExpenseLogEntry);
             }
 
-			Timekeeper.Finish("load_char_elog");
-			Timekeeper.Start("load_char_loc");
+			//Timekeeper.Finish("load_char_elog");
+			//Timekeeper.Start("load_char_loc");
 
 			// Locations.
-			XmlNodeList objXmlLocationList = objXmlDocument.SelectNodes("/character/locations/location");
-            foreach (XmlNode objXmlLocation in objXmlLocationList)
+			IXmlNodeList objXmlLocationList = objXmlDocument.SelectNodes("/character/locations/location");
+            foreach (IXmlNode objXmlLocation in objXmlLocationList)
             {
                 _lstLocations.Add(objXmlLocation.InnerText);
             }
 
-			Timekeeper.Finish("load_char_loc");
-			Timekeeper.Start("load_char_abundle");
+			//Timekeeper.Finish("load_char_loc");
+			//Timekeeper.Start("load_char_abundle");
 
 			// Armor Bundles.
-			XmlNodeList objXmlBundleList = objXmlDocument.SelectNodes("/character/armorbundles/armorbundle");
-            foreach (XmlNode objXmlBundle in objXmlBundleList)
+			IXmlNodeList objXmlBundleList = objXmlDocument.SelectNodes("/character/armorbundles/armorbundle");
+            foreach (IXmlNode objXmlBundle in objXmlBundleList)
             {
                 _lstArmorBundles.Add(objXmlBundle.InnerText);
             }
 
-			Timekeeper.Finish("load_char_abundle");
-			Timekeeper.Start("load_char_wloc");
+			//Timekeeper.Finish("load_char_abundle");
+			//Timekeeper.Start("load_char_wloc");
 
 			// Weapon Locations.
-			XmlNodeList objXmlWeaponLocationList = objXmlDocument.SelectNodes("/character/weaponlocations/weaponlocation");
-            foreach (XmlNode objXmlLocation in objXmlWeaponLocationList)
+			IXmlNodeList objXmlWeaponLocationList = objXmlDocument.SelectNodes("/character/weaponlocations/weaponlocation");
+            foreach (IXmlNode objXmlLocation in objXmlWeaponLocationList)
             {
                 _lstWeaponLocations.Add(objXmlLocation.InnerText);
             }
 
-			Timekeeper.Finish("load_char_wloc");
-			Timekeeper.Start("load_char_igroup");
+			//Timekeeper.Finish("load_char_wloc");
+			//Timekeeper.Start("load_char_igroup");
 
 			// Improvement Groups.
-			XmlNodeList objXmlGroupList = objXmlDocument.SelectNodes("/character/improvementgroups/improvementgroup");
-            foreach (XmlNode objXmlGroup in objXmlGroupList)
+			IXmlNodeList objXmlGroupList = objXmlDocument.SelectNodes("/character/improvementgroups/improvementgroup");
+            foreach (IXmlNode objXmlGroup in objXmlGroupList)
             {
                 _lstImprovementGroups.Add(objXmlGroup.InnerText);
             }
 
-			Timekeeper.Finish("load_char_igroup");
-			Timekeeper.Start("load_char_calendar");
+			//Timekeeper.Finish("load_char_igroup");
+			//Timekeeper.Start("load_char_calendar");
 
 			// Calendar.
-			XmlNodeList objXmlWeekList = objXmlDocument.SelectNodes("/character/calendar/week");
-            foreach (XmlNode objXmlWeek in objXmlWeekList)
+			IXmlNodeList objXmlWeekList = objXmlDocument.SelectNodes("/character/calendar/week");
+            foreach (IXmlNode objXmlWeek in objXmlWeekList)
             {
                 CalendarWeek objWeek = new CalendarWeek();
                 objWeek.Load(objXmlWeek);
                 _lstCalendar.Add(objWeek);
             }
 
-			Timekeeper.Finish("load_char_calendar");
-			Timekeeper.Start("load_char_unarmed");
+			//Timekeeper.Finish("load_char_calendar");
+			//Timekeeper.Start("load_char_unarmed");
 
 			// Look for the unarmed attack
 			bool blnFoundUnarmed = false;
@@ -1681,12 +1687,12 @@ namespace Chummer
                 // Add the Unarmed Attack Weapon to the character.
                 try
                 {
-                    XmlDocument objXmlWeaponDoc = XmlManager.Instance.Load("weapons.xml");
-                    XmlNode objXmlWeapon = objXmlWeaponDoc.SelectSingleNode("/chummer/weapons/weapon[name = \"Unarmed Attack\"]");
-                    TreeNode objGearWeaponNode = new TreeNode();
+                    IXmlDocument objXmlWeaponDoc = XmlManager.Instance.Load("weapons.xml");
+                    IXmlNode objXmlWeapon = objXmlWeaponDoc.SelectSingleNode("/chummer/weapons/weapon[name = \"Unarmed Attack\"]");
+                    ITreeNode objGearWeaponNode = displayFactory.CreateTreeNode();
                     Weapon objWeapon = new Weapon(this);
                     objWeapon.Create(objXmlWeapon, this, objGearWeaponNode, null, null);
-                    objGearWeaponNode.ForeColor = SystemColors.GrayText;
+                    //objGearWeaponNode.ForeColor = SystemColors.GrayText;
                     _lstWeapons.Add(objWeapon);
                 }
                 catch
@@ -1694,8 +1700,8 @@ namespace Chummer
                 }
             }
 
-			Timekeeper.Finish("load_char_unarmed");
-			Timekeeper.Start("load_char_dwarffix");
+			//Timekeeper.Finish("load_char_unarmed");
+			//Timekeeper.Start("load_char_dwarffix");
 
 			// converting from old dwarven resistance to new dwarven resistance
 			if (this.Metatype.ToLower().Equals("dwarf")
@@ -1703,16 +1709,16 @@ namespace Chummer
                 && this.Qualities.Where(x => x.Name.Equals("Resistance to Pathogens and Toxins")).FirstOrDefault() != null)
             {
                 this.Qualities.Remove(this.Qualities.Where(x => x.Name.Equals("Resistance to Pathogens and Toxins")).First());
-                XmlNode objXmlDwarfQuality = XmlManager.Instance.Load("qualities.xml").SelectSingleNode("/chummer/qualities/quality[name = \"Resistance to Pathogens/Toxins\"]");
+                IXmlNode objXmlDwarfQuality = XmlManager.Instance.Load("qualities.xml").SelectSingleNode("/chummer/qualities/quality[name = \"Resistance to Pathogens/Toxins\"]");
 
                 if (objXmlDwarfQuality==null)
                     objXmlDwarfQuality = XmlManager.Instance.Load("qualities.xml").SelectSingleNode("/chummer/qualities/quality[name = \"Dwarf Resistance\"]");
-                
 
 
-                TreeNode objNode = new TreeNode();
+
+                ITreeNode objNode = displayFactory.CreateTreeNode();
                 List<Weapon> objWeapons = new List<Weapon>();
-                List<TreeNode> objWeaponNodes = new List<TreeNode>();
+                List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
                 Quality objQuality = new Quality(this);
 
                 objQuality.Create(objXmlDwarfQuality, this, QualitySource.Metatype, objNode, objWeapons, objWeaponNodes);
@@ -1721,14 +1727,14 @@ namespace Chummer
             }
 
 
-			Timekeeper.Finish("load_char_dwarffix");
-			Timekeeper.Start("load_char_cfix");
+			//Timekeeper.Finish("load_char_dwarffix");
+			//Timekeeper.Start("load_char_cfix");
 
 			// load issue where the contact multiplier was set to 0
 			if (_intContactMultiplier == 0 && _strGameplayOption != string.Empty)
             {
-                XmlDocument objXmlDocumentPriority = XmlManager.Instance.Load("gameplayoptions.xml");
-                XmlNode objXmlGameplayOption = objXmlDocumentPriority.SelectSingleNode("/chummer/gameplayoptions/gameplayoption[name = \"" + _strGameplayOption + "\"]");
+                IXmlDocument objXmlDocumentPriority = XmlManager.Instance.Load("gameplayoptions.xml");
+                IXmlNode objXmlGameplayOption = objXmlDocumentPriority.SelectSingleNode("/chummer/gameplayoptions/gameplayoption[name = \"" + _strGameplayOption + "\"]");
                 string strKarma = objXmlGameplayOption["karma"].InnerText;
                 string strNuyen = objXmlGameplayOption["maxnuyen"].InnerText;
                 string strContactMultiplier = "0";
@@ -1747,14 +1753,14 @@ namespace Chummer
                 _intContactPoints = (CHA.Base + CHA.Karma) * _intContactMultiplier;
             }
 
-			Timekeeper.Finish("load_char_cfix");
-			Timekeeper.Start("load_char_maxkarmafix");
+			//Timekeeper.Finish("load_char_cfix");
+			//Timekeeper.Start("load_char_maxkarmafix");
 			//Fixes an issue where the quality limit was not set. In most cases this should wind up equalling 25.
 	        if (_intGameplayOptionQualityLimit == 0 && _intMaxKarma > 0)
 	        {
 		        _intGameplayOptionQualityLimit = _intMaxKarma;
 	        }
-			Timekeeper.Finish("load_char_maxkarmafix");
+			//Timekeeper.Finish("load_char_maxkarmafix");
 
 			//// If the character had old Qualities that were converted, immediately save the file so they are in the new format.
 			//      if (blnHasOldQualities)
@@ -1776,12 +1782,12 @@ namespace Chummer
         /// </summary>
         /// <param name="objStream">MemoryStream to use.</param>
         /// <param name="objWriter">XmlTextWriter to write to.</param>
-        public void PrintToStream(MemoryStream objStream, XmlTextWriter objWriter)
+        public void PrintToStream(Stream objStream, IXmlWriter objWriter)
         {
-            XmlDocument objXmlDocument = new XmlDocument();
+            IXmlDocument objXmlDocument = xmlFactory.CreateNew();
 
-            XmlDocument objMetatypeDoc = new XmlDocument();
-            XmlNode objMetatypeNode;
+            IXmlDocument objMetatypeDoc = xmlFactory.CreateNew();
+            IXmlNode objMetatypeNode;
             string strMetatype = "";
             string strMetavariant = "";
             // Get the name of the Metatype and Metavariant.
@@ -1875,19 +1881,19 @@ namespace Chummer
             // If you give it an extension of jpg, gif, or png, it expects the file to be in that format and won't render the image unless it was originally that type.
             // But if you give it the extension img, it will render whatever you give it (which doesn't make any damn sense, but that's IE for you).
             string strMugshotPath = "";
-            if (_strMugshot != "")
-            {
-				string mugshotsDirectoryPath = Path.Combine(Application.StartupPath, "mugshots");
-                if (!Directory.Exists(mugshotsDirectoryPath))
-                    Directory.CreateDirectory(mugshotsDirectoryPath);
-                byte[] bytImage = Convert.FromBase64String(_strMugshot);
-                MemoryStream objImageStream = new MemoryStream(bytImage, 0, bytImage.Length);
-                objImageStream.Write(bytImage, 0, bytImage.Length);
-                Image imgMugshot = Image.FromStream(objImageStream, true);
-	            string imgMugshotPath = Path.Combine(mugshotsDirectoryPath, guiImage + ".img");
-                imgMugshot.Save(imgMugshotPath);
-                strMugshotPath = "file://" + imgMugshotPath.Replace(Path.DirectorySeparatorChar, '/');
-            }
+    //        if (_strMugshot != "")
+    //        {
+				//string mugshotsDirectoryPath = Path.Combine(Application.StartupPath, "mugshots");
+    //            if (!Directory.Exists(mugshotsDirectoryPath))
+    //                Directory.CreateDirectory(mugshotsDirectoryPath);
+    //            byte[] bytImage = Convert.FromBase64String(_strMugshot);
+    //            MemoryStream objImageStream = new MemoryStream(bytImage, 0, bytImage.Length);
+    //            objImageStream.Write(bytImage, 0, bytImage.Length);
+    //            Image imgMugshot = Image.FromStream(objImageStream, true);
+	   //         string imgMugshotPath = Path.Combine(mugshotsDirectoryPath, guiImage + ".img");
+    //            imgMugshot.Save(imgMugshotPath);
+    //            strMugshotPath = "file://" + imgMugshotPath.Replace(Path.DirectorySeparatorChar, '/');
+    //        }
             // <mugshot />
             objWriter.WriteElementString("mugshot", strMugshotPath);
             // <mugshotbase64 />
@@ -1995,10 +2001,10 @@ namespace Chummer
             if (_strMagicTradition != "")
             {
                 string strDrainAtt = "";
-                objXmlDocument = new XmlDocument();
+                objXmlDocument = xmlFactory.CreateNew();
                 objXmlDocument = XmlManager.Instance.Load("traditions.xml");
 
-                XmlNode objXmlTradition = objXmlDocument.SelectSingleNode("/chummer/traditions/tradition[name = \"" + _strMagicTradition + "\"]");
+                IXmlNode objXmlTradition = objXmlDocument.SelectSingleNode("/chummer/traditions/tradition[name = \"" + _strMagicTradition + "\"]");
 
                 try
                 {
@@ -2012,7 +2018,7 @@ namespace Chummer
                     strDrainAtt = objXmlTradition["drain"].InnerText;
                 }
 
-                XPathNavigator nav = objXmlDocument.CreateNavigator();
+                IXPathNavigator nav = objXmlDocument.CreateNavigator();
                 string strDrain = strDrainAtt.Replace("BOD", _attBOD.TotalValue.ToString());
                 strDrain = strDrain.Replace("AGI", _attAGI.TotalValue.ToString());
                 strDrain = strDrain.Replace("REA", _attREA.TotalValue.ToString());
@@ -2026,7 +2032,7 @@ namespace Chummer
                 {
                     strDrain = "0";
                 }
-				XPathExpression xprDrain = nav.Compile(strDrain);
+				IXPathExpression xprDrain = nav.Compile(strDrain);
 
                 // Add any Improvements for Drain Resistance.
                 int intDrain = Convert.ToInt32(nav.Evaluate(xprDrain)) + _objImprovementManager.ValueOf(Improvement.ImprovementType.DrainResistance);
@@ -2034,7 +2040,7 @@ namespace Chummer
                 objWriter.WriteElementString("drain", strDrainAtt + " (" + intDrain.ToString() + ")");
 
 				// Get spirit type per spell category
-				XmlNodeList lstXmlSpiritTypes = objXmlTradition.SelectNodes("spirits/spirit");
+				IXmlNodeList lstXmlSpiritTypes = objXmlTradition.SelectNodes("spirits/spirit");
 				
 				string strSpiritCombat = lstXmlSpiritTypes[0] != null ? lstXmlSpiritTypes[0].InnerText : _strSpiritCombat;
 				string strSpiritDetection = lstXmlSpiritTypes[1] != null ? lstXmlSpiritTypes[1].InnerText : _strSpiritDetection;
@@ -2068,13 +2074,13 @@ namespace Chummer
             if (_strTechnomancerStream != "")
             {
                 string strDrainAtt = "";
-                objXmlDocument = new XmlDocument();
+                objXmlDocument = xmlFactory.CreateNew();
                 objXmlDocument = XmlManager.Instance.Load("streams.xml");
 
-                XmlNode objXmlTradition = objXmlDocument.SelectSingleNode("/chummer/traditions/tradition[name = \"" + _strTechnomancerStream + "\"]");
+                IXmlNode objXmlTradition = objXmlDocument.SelectSingleNode("/chummer/traditions/tradition[name = \"" + _strTechnomancerStream + "\"]");
                 strDrainAtt = objXmlTradition["drain"].InnerText;
 
-                XPathNavigator nav = objXmlDocument.CreateNavigator();
+                IXPathNavigator nav = objXmlDocument.CreateNavigator();
                 string strDrain = strDrainAtt.Replace("BOD", _attBOD.TotalValue.ToString());
                 strDrain = strDrain.Replace("AGI", _attAGI.TotalValue.ToString());
                 strDrain = strDrain.Replace("REA", _attREA.TotalValue.ToString());
@@ -2084,7 +2090,7 @@ namespace Chummer
                 strDrain = strDrain.Replace("LOG", _attLOG.TotalValue.ToString());
                 strDrain = strDrain.Replace("WIL", _attWIL.TotalValue.ToString());
                 strDrain = strDrain.Replace("RES", _attRES.TotalValue.ToString());
-				XPathExpression xprDrain = nav.Compile(strDrain);
+				IXPathExpression xprDrain = nav.Compile(strDrain);
 
                 // Add any Improvements for Fading Resistance.
                 int intDrain = Convert.ToInt32(nav.Evaluate(xprDrain)) + _objImprovementManager.ValueOf(Improvement.ImprovementType.FadingResistance);
@@ -2442,7 +2448,7 @@ namespace Chummer
             {
                 int intFirewall = _attWIL.TotalValue + _objImprovementManager.ValueOf(Improvement.ImprovementType.LivingPersonaFirewall);
                 int intResponse = _attINT.TotalValue + _objImprovementManager.ValueOf(Improvement.ImprovementType.LivingPersonaResponse);
-                int intSignal = Convert.ToInt32(Math.Ceiling((Convert.ToDecimal(_attRES.TotalValue, GlobalOptions.Instance.CultureInfo) / 2))) + _objImprovementManager.ValueOf(Improvement.ImprovementType.LivingPersonaSignal);
+                int intSignal = Convert.ToInt32(Math.Ceiling((Convert.ToDecimal(_attRES.TotalValue, CultureInfo.InvariantCulture) / 2))) + _objImprovementManager.ValueOf(Improvement.ImprovementType.LivingPersonaSignal);
                 int intSystem = _attLOG.TotalValue + _objImprovementManager.ValueOf(Improvement.ImprovementType.LivingPersonaSystem);
 
                 // Make sure none of the Attributes exceed the Technomancer's RES.
@@ -2541,11 +2547,11 @@ namespace Chummer
         /// Print this character and open the View Character window.
         /// </summary>
         /// <param name="blnDialog">Whether or not the window should be shown as a dialogue window.</param>
-        public void Print(bool blnDialog = true)
+        public void Print(IXmlWriter objWriter, bool blnDialog = true)
         {
             // Write the Character information to a MemoryStream so we don't need to create any files.
-            MemoryStream objStream = new MemoryStream();
-            XmlTextWriter objWriter = new XmlTextWriter(objStream, Encoding.UTF8);
+            //MemoryStream objStream = new MemoryStream();
+            //IXmlWriter objWriter = new XmlTextWriter(objStream, Encoding.UTF8);
 
             // Being the document.
             objWriter.WriteStartDocument();
@@ -2553,7 +2559,7 @@ namespace Chummer
             // </characters>
             objWriter.WriteStartElement("characters");
 
-            PrintToStream(objStream, objWriter);
+            PrintToStream(objWriter.BaseStream, objWriter);
 
             // </characters>
             objWriter.WriteEndElement();
@@ -2561,40 +2567,40 @@ namespace Chummer
             // Finish the document and flush the Writer and Stream.
             objWriter.WriteEndDocument();
             objWriter.Flush();
-            objStream.Flush();
+            //objStream.Flush();
 
             // Read the stream.
-            StreamReader objReader = new StreamReader(objStream);
-            objStream.Position = 0;
-            XmlDocument objCharacterXML = new XmlDocument();
+            StreamReader objReader = new StreamReader(objWriter.BaseStream);
+            objWriter.BaseStream.Position = 0;
+            IXmlDocument objCharacterXML = xmlFactory.CreateNew();
 
             // Put the stream into an XmlDocument and send it off to the Viewer.
             string strXML = objReader.ReadToEnd();
             objCharacterXML.LoadXml(strXML);
 
             objWriter.Close();
-            objStream.Close();
+            //objStream.Close();
 
             // If a reference to the Viewer window does not yet exist for this character, open a new Viewer window and set the reference to it.
             // If a Viewer window already exists for this character, use it instead.
-            if (_frmPrintView == null)
-            {
-                List<Character> lstCharacters = new List<Character>();
-                lstCharacters.Add(this);
-                frmViewer frmViewCharacter = new frmViewer();
-                frmViewCharacter.Characters = lstCharacters;
-                frmViewCharacter.CharacterXML = objCharacterXML;
-                _frmPrintView = frmViewCharacter;
-                if (blnDialog)
-                    frmViewCharacter.ShowDialog();
-                else
-                    frmViewCharacter.Show();
-            }
-            else
-            {
-                _frmPrintView.Activate();
-                _frmPrintView.RefreshView();
-            }
+            //if (_frmPrintView == null)
+            //{
+            //    List<Character> lstCharacters = new List<Character>();
+            //    lstCharacters.Add(this);
+            //    frmViewer frmViewCharacter = new frmViewer();
+            //    frmViewCharacter.Characters = lstCharacters;
+            //    frmViewCharacter.CharacterXML = objCharacterXML;
+            //    _frmPrintView = frmViewCharacter;
+            //    if (blnDialog)
+            //        frmViewCharacter.ShowDialog();
+            //    else
+            //        frmViewCharacter.Show();
+            //}
+            //else
+            //{
+            //    _frmPrintView.Activate();
+            //    _frmPrintView.RefreshView();
+            //}
         }
 
         /// <summary>
@@ -4378,7 +4384,7 @@ namespace Chummer
         {
             get
             {
-                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, GlobalOptions.Instance.CultureInfo) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.Essence), GlobalOptions.Instance.CultureInfo);
+                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, CultureInfo.InvariantCulture) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.Essence), CultureInfo.InvariantCulture);
                 // Run through all of the pieces of Cyberware and include their Essence cost. Cyberware and Bioware costs are calculated separately. The higher value removes its full cost from the
                 // character's ESS while the lower removes half of its cost from the character's ESS.
                 decimal decCyberware = 0m;
@@ -4434,7 +4440,7 @@ namespace Chummer
         {
             get
             {
-                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, GlobalOptions.Instance.CultureInfo) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.Essence), GlobalOptions.Instance.CultureInfo);
+                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, CultureInfo.InvariantCulture) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.Essence), CultureInfo.InvariantCulture);
                 // Run through all of the pieces of Cyberware and include their Essence cost. Cyberware and Bioware costs are calculated separately. The higher value removes its full cost from the
                 // character's ESS while the lower removes half of its cost from the character's ESS.
                 decimal decCyberware = 0m;
@@ -4467,7 +4473,7 @@ namespace Chummer
         {
             get
             {
-                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, GlobalOptions.Instance.CultureInfo) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.Essence), GlobalOptions.Instance.CultureInfo);
+                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, CultureInfo.InvariantCulture) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.Essence), CultureInfo.InvariantCulture);
                 // Run through all of the pieces of Cyberware and include their Essence cost. Cyberware and Bioware costs are calculated separately. The higher value removes its full cost from the
                 // character's ESS while the lower removes half of its cost from the character's ESS.
                 decimal decCyberware = 0m;
@@ -4500,7 +4506,7 @@ namespace Chummer
         {
             get
             {
-                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, GlobalOptions.Instance.CultureInfo) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.Essence), GlobalOptions.Instance.CultureInfo);
+                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, CultureInfo.InvariantCulture) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.Essence), CultureInfo.InvariantCulture);
                 // Run through all of the pieces of Cyberware and include their Essence cost. Cyberware and Bioware costs are calculated separately. The higher value removes its full cost from the
                 // character's ESS while the lower removes half of its cost from the character's ESS.
                 decimal decCyberware = 0m;
@@ -4530,7 +4536,7 @@ namespace Chummer
         {
             get
             {
-                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, GlobalOptions.Instance.CultureInfo) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.EssenceMax), GlobalOptions.Instance.CultureInfo);
+                decimal decESS = Convert.ToDecimal(_attESS.MetatypeMaximum, CultureInfo.InvariantCulture) + Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.EssenceMax), CultureInfo.InvariantCulture);
                 return decESS;
             }
         }
@@ -4854,7 +4860,7 @@ namespace Chummer
         {
             get
             {
-                double dblAverage = Convert.ToDouble(_attCHA.TotalValue, GlobalOptions.Instance.CultureInfo) + Convert.ToDouble(_attINT.TotalValue, GlobalOptions.Instance.CultureInfo) + Convert.ToDouble(_attLOG.TotalValue, GlobalOptions.Instance.CultureInfo) + Convert.ToDouble(_attWIL.TotalValue, GlobalOptions.Instance.CultureInfo);
+                double dblAverage = Convert.ToDouble(_attCHA.TotalValue, CultureInfo.InvariantCulture) + Convert.ToDouble(_attINT.TotalValue, CultureInfo.InvariantCulture) + Convert.ToDouble(_attLOG.TotalValue, CultureInfo.InvariantCulture) + Convert.ToDouble(_attWIL.TotalValue, CultureInfo.InvariantCulture);
                 dblAverage = Math.Ceiling(dblAverage / 4);
                 return Convert.ToInt32(dblAverage);
             }
@@ -4867,7 +4873,7 @@ namespace Chummer
         {
             get
             {
-                double dblAverage = Convert.ToDouble(_attINT.TotalValue, GlobalOptions.Instance.CultureInfo) + Convert.ToDouble(_attLOG.TotalValue, GlobalOptions.Instance.CultureInfo);
+                double dblAverage = Convert.ToDouble(_attINT.TotalValue, CultureInfo.InvariantCulture) + Convert.ToDouble(_attLOG.TotalValue, CultureInfo.InvariantCulture);
                 dblAverage = Math.Ceiling(dblAverage / 2);
                 return Convert.ToInt32(dblAverage);
             }
@@ -4880,7 +4886,7 @@ namespace Chummer
         {
             get
             {
-                double dblAverage = Convert.ToDouble(_attCHA.TotalValue, GlobalOptions.Instance.CultureInfo) + Convert.ToDouble(_attWIL.TotalValue, GlobalOptions.Instance.CultureInfo);
+                double dblAverage = Convert.ToDouble(_attCHA.TotalValue, CultureInfo.InvariantCulture) + Convert.ToDouble(_attWIL.TotalValue, CultureInfo.InvariantCulture);
                 dblAverage = Math.Ceiling(dblAverage / 2);
                 return Convert.ToInt32(dblAverage);
             }
@@ -5090,7 +5096,7 @@ namespace Chummer
 				if (_objOptions.UseCalculatedPublicAwareness)
 				{
 					// Public Awareness is calculated as (Street Cred + Notoriety) / 3, rounded down.
-					double dblAwareness = Convert.ToDouble(TotalStreetCred, GlobalOptions.Instance.CultureInfo) + Convert.ToDouble(TotalNotoriety, GlobalOptions.Instance.CultureInfo);
+					double dblAwareness = Convert.ToDouble(TotalStreetCred, CultureInfo.InvariantCulture) + Convert.ToDouble(TotalNotoriety, CultureInfo.InvariantCulture);
 					dblAwareness = Math.Floor(dblAwareness / 3);
 					intReturn += Convert.ToInt32(dblAwareness);
 				}
@@ -5888,7 +5894,7 @@ namespace Chummer
         {
             get
             {
-                decimal decImprovement = Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.NuyenMaxBP), GlobalOptions.Instance.CultureInfo);
+                decimal decImprovement = Convert.ToDecimal(_objImprovementManager.ValueOf(Improvement.ImprovementType.NuyenMaxBP), CultureInfo.InvariantCulture);
                 if (_objBuildMethod == CharacterBuildMethod.Karma)
                     decImprovement *= 2.0m;
 
@@ -6098,9 +6104,9 @@ namespace Chummer
 	            }
 
 				string strReturn = "";
-				XmlDocument objXmlDocument = new XmlDocument();
+                IXmlDocument objXmlDocument = xmlFactory.CreateNew();
 	            objXmlDocument = XmlManager.Instance.Load(_blnIsCritter ? "critters.xml" : "metatypes.xml");
-	            XmlNode objXmlNode = objXmlDocument.SelectSingleNode("/chummer/metatypes/metatype[name = \"" + _strMetatype + "\"]");
+	            IXmlNode objXmlNode = objXmlDocument.SelectSingleNode("/chummer/metatypes/metatype[name = \"" + _strMetatype + "\"]");
 	                
                 objXmlNode.TryGetField("movement", out _strMovement);
 				objXmlNode.TryGetField("run", out _strRun);
@@ -6248,9 +6254,9 @@ namespace Chummer
                 int intRunMultiplier = (Convert.ToInt32(RunningRate(strMovementType))*intMultiply) + ObjImprovementManager.ValueOf(Improvement.ImprovementType.MovementMultiplier);
 				int intWalkMultiplier = (Convert.ToInt32(WalkingRate(strMovementType))*intMultiply) + ObjImprovementManager.ValueOf(Improvement.ImprovementType.MovementMultiplier);
 
-				intRunMultiplier += Convert.ToInt32(Math.Floor(Convert.ToDouble(RunningRate(strMovementType), GlobalOptions.Instance.CultureInfo) * dblPercent));
-				intWalkMultiplier += Convert.ToInt32(Math.Floor(Convert.ToDouble(WalkingRate(strMovementType), GlobalOptions.Instance.CultureInfo) * dblPercent));
-				intSprint += Convert.ToInt32(Math.Floor(Convert.ToDouble(SprintingRate(strMovementType), GlobalOptions.Instance.CultureInfo) * dblPercent));
+				intRunMultiplier += Convert.ToInt32(Math.Floor(Convert.ToDouble(RunningRate(strMovementType), CultureInfo.InvariantCulture) * dblPercent));
+				intWalkMultiplier += Convert.ToInt32(Math.Floor(Convert.ToDouble(WalkingRate(strMovementType), CultureInfo.InvariantCulture) * dblPercent));
+				intSprint += Convert.ToInt32(Math.Floor(Convert.ToDouble(SprintingRate(strMovementType), CultureInfo.InvariantCulture) * dblPercent));
 
 				if (_objOptions.CyberlegMovement && blnUseCyberlegs)
 				{
@@ -6320,9 +6326,9 @@ namespace Chummer
 				}
 
 				string strReturn = "";
-				XmlDocument objXmlDocument = new XmlDocument();
+                IXmlDocument objXmlDocument = xmlFactory.CreateNew();
 				objXmlDocument = XmlManager.Instance.Load(_blnIsCritter ? "critters.xml" : "metatypes.xml");
-				XmlNode objXmlNode = objXmlDocument.SelectSingleNode("/chummer/metatypes/metatype[name = \"" + _strMetatype + "\"]");
+				IXmlNode objXmlNode = objXmlDocument.SelectSingleNode("/chummer/metatypes/metatype[name = \"" + _strMetatype + "\"]");
 
 				objXmlNode.TryGetField("movement", out _strMovement);
 				if (_strMovement == "Special")
@@ -6347,9 +6353,9 @@ namespace Chummer
 				}
 
 				string strReturn = "";
-				XmlDocument objXmlDocument = new XmlDocument();
+                IXmlDocument objXmlDocument = xmlFactory.CreateNew();
 				objXmlDocument = XmlManager.Instance.Load(_blnIsCritter ? "critters.xml" : "metatypes.xml");
-				XmlNode objXmlNode = objXmlDocument.SelectSingleNode("/chummer/metatypes/metatype[name = \"" + _strMetatype + "\"]");
+				IXmlNode objXmlNode = objXmlDocument.SelectSingleNode("/chummer/metatypes/metatype[name = \"" + _strMetatype + "\"]");
 
 				objXmlNode.TryGetField("movement", out _strMovement);
 				if (_strMovement == "Special")
@@ -6973,30 +6979,30 @@ namespace Chummer
         /// <summary>
         /// The frmViewer window being used by the character.
         /// </summary>
-        public frmViewer PrintWindow
-        {
-            get
-            {
-                return _frmPrintView;
-            }
-            set
-            {
-                _frmPrintView = value;
-            }
-        }
+        //public frmViewer PrintWindow
+        //{
+        //    get
+        //    {
+        //        return _frmPrintView;
+        //    }
+        //    set
+        //    {
+        //        _frmPrintView = value;
+        //    }
+        //}
         #endregion
 
         #region Old Quality Conversion Code
         /// <summary>
         /// Convert Qualities that are still saved in the old format.
         /// </summary>
-        private void ConvertOldQualities(XmlNodeList objXmlQualityList)
+        private void ConvertOldQualities(IXmlNodeList objXmlQualityList)
         {
-            XmlDocument objXmlQualityDocument = XmlManager.Instance.Load("qualities.xml");
-            XmlDocument objXmlMetatypeDocument = XmlManager.Instance.Load("metatypes.xml");
+            IXmlDocument objXmlQualityDocument = XmlManager.Instance.Load("qualities.xml");
+            IXmlDocument objXmlMetatypeDocument = XmlManager.Instance.Load("metatypes.xml");
 
             // Convert the old Qualities.
-            foreach (XmlNode objXmlQuality in objXmlQualityList)
+            foreach (IXmlNode objXmlQuality in objXmlQualityList)
             {
                 if (objXmlQuality["name"] == null)
                 {
@@ -7004,7 +7010,7 @@ namespace Chummer
 
                     string strForceValue = "";
 
-                    XmlNode objXmlQualityNode = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + GetQualityName(objXmlQuality.InnerText) + "\"]");
+                    IXmlNode objXmlQualityNode = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + GetQualityName(objXmlQuality.InnerText) + "\"]");
 
                     // Re-create the bonuses for the Quality.
                     if (objXmlQualityNode.InnerXml.Contains("<bonus>"))
@@ -7024,8 +7030,8 @@ namespace Chummer
                     // Convert the item to the new Quality class.
                     Quality objQuality = new Quality(this);
                     List<Weapon> objWeapons = new List<Weapon>();
-                    List<TreeNode> objWeaponNodes = new List<TreeNode>();
-                    TreeNode objNode = new TreeNode();
+                    List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
+                    ITreeNode objNode = displayFactory.CreateTreeNode();
                     objQuality.Create(objXmlQualityNode, this, QualitySource.Selected, objNode, objWeapons, objWeaponNodes, strForceValue);
                     _lstQualities.Add(objQuality);
 
@@ -7036,7 +7042,7 @@ namespace Chummer
             }
 
             // Take care of the Metatype information.
-            XmlNode objXmlMetatype = objXmlMetatypeDocument.SelectSingleNode("/chummer/metatypes/metatype[name = \"" + _strMetatype + "\"]");
+            IXmlNode objXmlMetatype = objXmlMetatypeDocument.SelectSingleNode("/chummer/metatypes/metatype[name = \"" + _strMetatype + "\"]");
             if (objXmlMetatype == null)
             {
                 objXmlMetatypeDocument = XmlManager.Instance.Load("critters.xml");
@@ -7044,7 +7050,7 @@ namespace Chummer
             }
 
             // Positive Qualities.
-            foreach (XmlNode objXmlMetatypeQuality in objXmlMetatype.SelectNodes("qualities/positive/quality"))
+            foreach (IXmlNode objXmlMetatypeQuality in objXmlMetatype.SelectNodes("qualities/positive/quality"))
             {
                 bool blnFound = false;
                 // See if the Quality already exists in the character.
@@ -7061,15 +7067,15 @@ namespace Chummer
                 if (!blnFound)
                 {
                     string strForceValue = "";
-                    TreeNode objNode = new TreeNode();
+                    ITreeNode objNode = displayFactory.CreateTreeNode();
                     List<Weapon> objWeapons = new List<Weapon>();
-                    List<TreeNode> objWeaponNodes = new List<TreeNode>();
+                    List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
                     Quality objQuality = new Quality(this);
 
                     if (objXmlMetatypeQuality.Attributes["select"] != null)
                         strForceValue = objXmlMetatypeQuality.Attributes["select"].InnerText;
 
-                    XmlNode objXmlQuality = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlMetatypeQuality.InnerText + "\"]");
+                    IXmlNode objXmlQuality = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlMetatypeQuality.InnerText + "\"]");
                     objQuality.Create(objXmlQuality, this, QualitySource.Metatype, objNode, objWeapons, objWeaponNodes, strForceValue);
                     _lstQualities.Add(objQuality);
 
@@ -7080,7 +7086,7 @@ namespace Chummer
             }
 
             // Negative Qualities.
-            foreach (XmlNode objXmlMetatypeQuality in objXmlMetatype.SelectNodes("qualities/negative/quality"))
+            foreach (IXmlNode objXmlMetatypeQuality in objXmlMetatype.SelectNodes("qualities/negative/quality"))
             {
                 bool blnFound = false;
                 // See if the Quality already exists in the character.
@@ -7097,15 +7103,15 @@ namespace Chummer
                 if (!blnFound)
                 {
                     string strForceValue = "";
-                    TreeNode objNode = new TreeNode();
+                    ITreeNode objNode = displayFactory.CreateTreeNode();
                     List<Weapon> objWeapons = new List<Weapon>();
-                    List<TreeNode> objWeaponNodes = new List<TreeNode>();
+                    List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
                     Quality objQuality = new Quality(this);
 
                     if (objXmlMetatypeQuality.Attributes["select"] != null)
                         strForceValue = objXmlMetatypeQuality.Attributes["select"].InnerText;
 
-                    XmlNode objXmlQuality = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlMetatypeQuality.InnerText + "\"]");
+                    IXmlNode objXmlQuality = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlMetatypeQuality.InnerText + "\"]");
                     objQuality.Create(objXmlQuality, this, QualitySource.Metatype, objNode, objWeapons, objWeaponNodes, strForceValue);
                     _lstQualities.Add(objQuality);
 
@@ -7121,7 +7127,7 @@ namespace Chummer
                 objXmlMetatype = objXmlMetatype.SelectSingleNode("metavariants/metavariant[name = \"" + _strMetavariant + "\"]");
 
                 // Positive Qualities.
-                foreach (XmlNode objXmlMetatypeQuality in objXmlMetatype.SelectNodes("qualities/positive/quality"))
+                foreach (IXmlNode objXmlMetatypeQuality in objXmlMetatype.SelectNodes("qualities/positive/quality"))
                 {
                     bool blnFound = false;
                     // See if the Quality already exists in the character.
@@ -7138,15 +7144,15 @@ namespace Chummer
                     if (!blnFound)
                     {
                         string strForceValue = "";
-                        TreeNode objNode = new TreeNode();
+                        ITreeNode objNode = displayFactory.CreateTreeNode();
                         List<Weapon> objWeapons = new List<Weapon>();
-                        List<TreeNode> objWeaponNodes = new List<TreeNode>();
+                        List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
                         Quality objQuality = new Quality(this);
 
                         if (objXmlMetatypeQuality.Attributes["select"] != null)
                             strForceValue = objXmlMetatypeQuality.Attributes["select"].InnerText;
 
-                        XmlNode objXmlQuality = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlMetatypeQuality.InnerText + "\"]");
+                        IXmlNode objXmlQuality = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlMetatypeQuality.InnerText + "\"]");
                         objQuality.Create(objXmlQuality, this, QualitySource.Metatype, objNode, objWeapons, objWeaponNodes, strForceValue);
                         _lstQualities.Add(objQuality);
 
@@ -7157,7 +7163,7 @@ namespace Chummer
                 }
 
                 // Negative Qualities.
-                foreach (XmlNode objXmlMetatypeQuality in objXmlMetatype.SelectNodes("qualities/negative/quality"))
+                foreach (IXmlNode objXmlMetatypeQuality in objXmlMetatype.SelectNodes("qualities/negative/quality"))
                 {
                     bool blnFound = false;
                     // See if the Quality already exists in the character.
@@ -7174,15 +7180,15 @@ namespace Chummer
                     if (!blnFound)
                     {
                         string strForceValue = "";
-                        TreeNode objNode = new TreeNode();
+                        ITreeNode objNode = displayFactory.CreateTreeNode();
                         List<Weapon> objWeapons = new List<Weapon>();
-                        List<TreeNode> objWeaponNodes = new List<TreeNode>();
+                        List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
                         Quality objQuality = new Quality(this);
 
                         if (objXmlMetatypeQuality.Attributes["select"] != null)
                             strForceValue = objXmlMetatypeQuality.Attributes["select"].InnerText;
 
-                        XmlNode objXmlQuality = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlMetatypeQuality.InnerText + "\"]");
+                        IXmlNode objXmlQuality = objXmlQualityDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlMetatypeQuality.InnerText + "\"]");
                         objQuality.Create(objXmlQuality, this, QualitySource.Metatype, objNode, objWeapons, objWeaponNodes, strForceValue);
                         _lstQualities.Add(objQuality);
 
@@ -7266,11 +7272,11 @@ namespace Chummer
 			strInput = strInput.TrimEnd(';');
 			string[] strArray = strInput.Split(';');
 			// Load the Sourcebook information.
-			XmlDocument objXmlDocument = XmlManager.Instance.Load("books.xml");
+			IXmlDocument objXmlDocument = XmlManager.Instance.Load("books.xml");
 
 			foreach (string strBook in strArray)
 			{
-				XmlNode objXmlBook = objXmlDocument.SelectSingleNode("/chummer/books/book[code = \"" + strBook + "\"]");
+				IXmlNode objXmlBook = objXmlDocument.SelectSingleNode("/chummer/books/book[code = \"" + strBook + "\"]");
 				if (objXmlBook != null)
 				{
 					if (objXmlBook["translate"] != null)
@@ -7408,7 +7414,7 @@ namespace Chummer
         }
 		public event PropertyChangedEventHandler PropertyChanged;
 
-	    [NotifyPropertyChangedInvocator]
+	    //[NotifyPropertyChangedInvocator]
 	    protected virtual void OnPropertyChanged<T>(ref T old, T value, [CallerMemberName] string propertyName = null)
 	    {
 		    if ((old == null && value != null) || value == null || !old.Equals(value))
