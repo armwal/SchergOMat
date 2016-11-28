@@ -32,7 +32,7 @@ namespace Chummer
 
     }
 
-    public interface IXmlNodeList : IEnumerable<IXmlNode>
+    public interface IXmlNodeList : IList<IXmlNode>
     {
         IXmlNode this[int index] { get; set; }
     }
@@ -41,16 +41,22 @@ namespace Chummer
 
     public interface IXmlNode : IEnumerable
     {
+        string Name { get; }
+        string Value { get; }
         IXmlNode this[string key] { get; set; }
         IXmlNode Attributes { get; }
         string InnerText { get; }
         string InnerXml { get; }
+        string OuterXml { get; }
+        bool HasChildNodes { get; }
+        IXmlNodeList ChildNodes { get; }
 
         IXmlNode SelectSingleNode(string path);
         IXmlNodeList SelectNodes(string path);
         
-        T TryGetField<T>(string name, out T value);
-        T TryGetField<T>(string name, out T value, T onError);
-        T TryGetField<T>(string name, TryParseFunction<T> parser, out T read);
+        bool TryGetField<T>(string name, out T value);
+        bool TryGetField<T>(string name, out T value, T onError);
+        bool TryGetField<T>(string name, TryParseFunction<T> parser, out T read);
+        bool TryCheckValue(string name, string value);
     }
 }

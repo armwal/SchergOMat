@@ -21,10 +21,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Security.AccessControl;
-using System.Windows.Forms;
+//using System.Security.AccessControl;
+//using System.Windows.Forms;
 using System.Xml;
-using System.Xml.XPath;
+//using System.Xml.XPath;
 using Chummer.Backend;
 using Chummer.Backend.Equipment;
 using Chummer.Classes;
@@ -231,7 +231,12 @@ namespace Chummer
 		private bool _blnEnabled = true;
 		private int _intOrder = 0;
 
-        private CommonFunctions objFunctions = new CommonFunctions();
+        private CommonFunctions objFunctions;// = new CommonFunctions();
+
+        public Improvement(IDisplayFactory displayFactory)
+        {
+            objFunctions = new CommonFunctions(displayFactory);
+        }
 
 		#region Helper Methods
 
@@ -263,7 +268,7 @@ namespace Chummer
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
 		public void Save(IXmlWriter objWriter)
 		{
-			Log.Enter("Save");
+			//Log.Enter("Save");
 
 			objWriter.WriteStartElement("improvement");
 			if (_strUniqueName != "")
@@ -289,7 +294,7 @@ namespace Chummer
 			objWriter.WriteElementString("notes", _strNotes);
 			objWriter.WriteEndElement();
 
-            Log.Exit("Save");
+            //Log.Exit("Save");
         }
 
 		/// <summary>
@@ -298,7 +303,7 @@ namespace Chummer
 		/// <param name="objNode">XmlNode to load.</param>
 		public void Load(IXmlNode objNode)
 		{
-            Log.Enter("Load");
+            //Log.Enter("Load");
             
             try
 			{
@@ -369,7 +374,7 @@ namespace Chummer
 			{
 			}
 
-            Log.Exit("Load");
+            //Log.Exit("Load");
         }
 
 		#endregion
@@ -569,10 +574,15 @@ namespace Chummer
 		private string _strSelectedValue = "";
 		private string _strForcedValue = "";
 		private readonly List<Improvement> _lstTransaction = new List<Improvement>();
+        private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
+        private IDisplayFactory displayFactory;
 
-		public ImprovementManager(Character objCharacter)
+		public ImprovementManager(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
 		{
-			LanguageManager.Instance.Load(GlobalOptions.Instance.Language, null);
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+			LanguageManager.Instance.Load(GlobalOptions.Instance.Language, null, documentFactory, messageDisplay);
 			_objCharacter = objCharacter;
 		}
 
@@ -823,12 +833,12 @@ namespace Chummer
 				strValue = strValue.Replace("MAG", _objCharacter.MAG.TotalValue.ToString());
 				strValue = strValue.Replace("RES", _objCharacter.RES.TotalValue.ToString());
 
-				XmlDocument objXmlDocument = new XmlDocument();
-				XPathNavigator nav = objXmlDocument.CreateNavigator();
+                IXmlDocument objXmlDocument = documentFactory.CreateNew();
+				IXPathNavigator nav = objXmlDocument.CreateNavigator();
 				string strReturn = strValue.Replace("Rating", intRating.ToString());
                 //Log.Info("strValue = " + strValue);
                 //Log.Info("strReturn = " + strReturn);
-                XPathExpression xprValue = nav.Compile(strReturn);
+                IXPathExpression xprValue = nav.Compile(strReturn);
 
 				// Treat this as a decimal value so any fractions can be rounded down. This is currently only used by the Boosted Reflexes Cyberware from SR2050.
 				decimal decValue = Convert.ToDecimal(nav.Evaluate(xprValue).ToString(), GlobalOptions.Instance.CultureInfo);
@@ -856,7 +866,7 @@ namespace Chummer
 		/// </summary>
 		/// <param name="objXmlNode">XmlNode to examine.</param>
 		/// <param name="strName">Name of the XmlNode to look for.</param>
-		private bool NodeExists(XmlNode objXmlNode, string strName)
+		private bool NodeExists(IXmlNode objXmlNode, string strName)
 		{
    //         Log.Enter("NodeExists");
 			//Log.Info("objXmlNode = " + objXmlNode.OuterXml.ToString());
@@ -865,7 +875,7 @@ namespace Chummer
             bool blnReturn = false;
 			try
 			{
-				XmlNode objXmlTest = objXmlNode.SelectSingleNode(strName);
+				IXmlNode objXmlTest = objXmlNode.SelectSingleNode(strName);
 				if (objXmlTest != null)
 					blnReturn = true;
 			}
@@ -891,17 +901,17 @@ namespace Chummer
 		/// <param name="strFriendlyName">Friendly name to show in any dialogue windows that ask for a value.</param>
 		/// <returns>True if successfull</returns>
 		public bool CreateImprovements(Improvement.ImprovementSource objImprovementSource, string strSourceName,
-			XmlNode nodBonus, bool blnConcatSelectedValue = false, int intRating = 1, string strFriendlyName = "",
+			IXmlNode nodBonus, bool blnConcatSelectedValue = false, int intRating = 1, string strFriendlyName = "",
 			object fCreate = null)
 		{
-            Log.Enter("CreateImprovements");
-			Log.Info("objImprovementSource = " + objImprovementSource.ToString());
-			Log.Info("strSourceName = " + strSourceName);
-			Log.Info("nodBonus = " + nodBonus.OuterXml.ToString());
-			Log.Info("blnConcatSelectedValue = " + blnConcatSelectedValue.ToString());
-			Log.Info("intRating = " + intRating.ToString());
-			Log.Info("strFriendlyName = " + strFriendlyName);
-			Log.Info("intRating = " + intRating.ToString());
+   //         Log.Enter("CreateImprovements");
+			//Log.Info("objImprovementSource = " + objImprovementSource.ToString());
+			//Log.Info("strSourceName = " + strSourceName);
+			//Log.Info("nodBonus = " + nodBonus.OuterXml.ToString());
+			//Log.Info("blnConcatSelectedValue = " + blnConcatSelectedValue.ToString());
+			//Log.Info("intRating = " + intRating.ToString());
+			//Log.Info("strFriendlyName = " + strFriendlyName);
+			//Log.Info("intRating = " + intRating.ToString());
 
             bool blnSuccess = true;
 
@@ -911,7 +921,7 @@ namespace Chummer
                 {
                     _strForcedValue = "";
                     _strLimitSelection = "";
-                    Log.Exit("CreateImprovements");
+                    //Log.Exit("CreateImprovements");
                     return true;
                 }
 
@@ -921,10 +931,10 @@ namespace Chummer
 
                 _strSelectedValue = "";
 
-				Log.Info(
-					"_strForcedValue = " + _strForcedValue);
-				Log.Info(
-					"_strLimitSelection = " + _strLimitSelection);
+				//Log.Info(
+				//	"_strForcedValue = " + _strForcedValue);
+				//Log.Info(
+				//	"_strLimitSelection = " + _strLimitSelection);
 
                 // If no friendly name was provided, use the one from SourceName.
                 if (strFriendlyName == "")
@@ -932,11 +942,11 @@ namespace Chummer
 
                 if (nodBonus.HasChildNodes)
                 {
-                    Log.Info("Has Child Nodes");
+                    //Log.Info("Has Child Nodes");
                 }
 				if (NodeExists(nodBonus, "selecttext"))
 				{
-					Log.Info("selecttext");
+					//Log.Info("selecttext");
 
 					if (_objCharacter != null)
 					{
@@ -950,43 +960,54 @@ namespace Chummer
 						}
 					}
 
-					Log.Info("_strForcedValue = " + SelectedValue);
-					Log.Info("_strLimitSelection = " + LimitSelection);
+					//Log.Info("_strForcedValue = " + SelectedValue);
+					//Log.Info("_strLimitSelection = " + LimitSelection);
 
 					// Display the Select Text window and record the value that was entered.
-					frmSelectText frmPickText = new frmSelectText();
-					frmPickText.Description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
-						.Replace("{0}", strFriendlyName);
+					//frmSelectText frmPickText = new frmSelectText();
+					//frmPickText.Description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
+					//	.Replace("{0}", strFriendlyName);
 
-					if (LimitSelection != "")
-					{
-						frmPickText.SelectedValue = LimitSelection;
-						frmPickText.Opacity = 0;
-					}
+					//if (LimitSelection != "")
+					//{
+					//	frmPickText.SelectedValue = LimitSelection;
+					//	frmPickText.Opacity = 0;
+					//}
 
-					frmPickText.ShowDialog();
+					//frmPickText.ShowDialog();
 
-					// Make sure the dialogue window was not canceled.
-					if (frmPickText.DialogResult == DialogResult.Cancel)
-					{
+					//// Make sure the dialogue window was not canceled.
+					//if (frmPickText.DialogResult == DialogResult.Cancel)
+					//{
 
-						Rollback();
-						ForcedValue = "";
-						LimitSelection = "";
-						Log.Exit("CreateImprovements");
-						throw new AbortedException();
-					}
+					//	Rollback();
+					//	ForcedValue = "";
+					//	LimitSelection = "";
+					//	Log.Exit("CreateImprovements");
+					//	throw new AbortedException();
+					//}
 
-					_strSelectedValue = frmPickText.SelectedValue;
+                    string textInput = messageDisplay.AskForTextInput(LanguageManager.Instance.GetString("String_Improvement_SelectText")
+                        .Replace("{0}", strFriendlyName), LimitSelection);
+                    if (string.IsNullOrEmpty(textInput))
+                    {
+                        Rollback();
+                        ForcedValue = "";
+                        LimitSelection = "";
+                        //Log.Exit("CreateImprovements");
+                        throw new AbortedException();
+                    }
+
+                    _strSelectedValue = textInput;
 					if (blnConcatSelectedValue)
 						strSourceName += " (" + SelectedValue + ")";
-					Log.Info("_strSelectedValue = " + SelectedValue);
-					Log.Info("strSourceName = " + strSourceName);
+					//Log.Info("_strSelectedValue = " + SelectedValue);
+					//Log.Info("strSourceName = " + strSourceName);
 
-					// Create the Improvement.
-					Log.Info("Calling CreateImprovement");
+					//// Create the Improvement.
+					//Log.Info("Calling CreateImprovement");
 
-					CreateImprovement(frmPickText.SelectedValue, objImprovementSource, strSourceName,
+					CreateImprovement(textInput, objImprovementSource, strSourceName,
 						Improvement.ImprovementType.Text,
 						strUnique);
 				}
@@ -994,13 +1015,13 @@ namespace Chummer
                 // If there is no character object, don't attempt to add any Improvements.
                 if (_objCharacter == null)
                 {
-                    Log.Info( "_objCharacter = Null");
-                    Log.Exit("CreateImprovements");
+                    //Log.Info( "_objCharacter = Null");
+                    //Log.Exit("CreateImprovements");
                     return true;
                 }
 
                 // Check to see what bonuses the node grants.
-				foreach (XmlNode bonusNode in nodBonus.ChildNodes)
+				foreach (IXmlNode bonusNode in nodBonus.ChildNodes)
                 {
 					blnSuccess = ProcessBonus(objImprovementSource, ref strSourceName, blnConcatSelectedValue, intRating,
 						strFriendlyName, bonusNode, strUnique);
@@ -1013,9 +1034,9 @@ namespace Chummer
 
 
 				// If we've made it this far, everything went OK, so commit the Improvements.
-				Log.Info("Calling Commit");
+				//Log.Info("Calling Commit");
 				Commit();
-				Log.Info("Returned from Commit");
+				//Log.Info("Returned from Commit");
 				// Clear the Forced Value and Limit Selection strings once we're done to prevent these from forcing their values on other Improvements.
 				_strForcedValue = "";
 				_strLimitSelection = "";
@@ -1030,13 +1051,13 @@ namespace Chummer
 				Rollback();
 				throw;
 			}*/
-			Log.Exit("CreateImprovements");
+			//Log.Exit("CreateImprovements");
 			return blnSuccess;
 
 		}
 		private bool ProcessBonus(Improvement.ImprovementSource objImprovementSource, ref string strSourceName,
 			bool blnConcatSelectedValue,
-			int intRating, string strFriendlyName, XmlNode bonusNode, string strUnique)
+			int intRating, string strFriendlyName, IXmlNode bonusNode, string strUnique)
 		{
 			try
 			{
@@ -1061,7 +1082,7 @@ namespace Chummer
 				else
 				{
 					Utils.BreakIfDebug();
-					Log.Warning(new object[] {"Tried to get unknown bonus", bonusNode.OuterXml, string.Join(", ", AddMethods.Value.Keys)});
+					//Log.Warning(new object[] {"Tried to get unknown bonus", bonusNode.OuterXml, string.Join(", ", AddMethods.Value.Keys)});
 				}
 			}
 			catch (TargetInvocationException ex) when (ex.InnerException.GetType() == typeof(AbortedException))
@@ -1076,8 +1097,8 @@ namespace Chummer
 		//this should probably be somewhere else...
 		private static readonly Lazy<Dictionary<string, MethodInfo>> AddMethods = new Lazy<Dictionary<string, MethodInfo>>(() =>
 		{
-			MethodInfo[] allMethods = typeof(AddImprovementCollection).GetMethods();
-
+            var allMethods = typeof(AddImprovementCollection).GetRuntimeMethods();
+            
 			return allMethods.ToDictionary(x => x.Name.ToUpperInvariant());
 		});
 		
@@ -1089,14 +1110,14 @@ namespace Chummer
 		/// <param name="strSourceName">Name of the item that granted these Improvements.</param>
 		public void RemoveImprovements(Improvement.ImprovementSource objImprovementSource, string strSourceName)
 		{
-            Log.Enter("RemoveImprovements");
-			Log.Info("objImprovementSource = " + objImprovementSource.ToString());
-			Log.Info("strSourceName = " + strSourceName);
+   //         Log.Enter("RemoveImprovements");
+			//Log.Info("objImprovementSource = " + objImprovementSource.ToString());
+			//Log.Info("strSourceName = " + strSourceName);
 
             // If there is no character object, don't try to remove any Improvements.
             if (_objCharacter == null)
             {
-                Log.Exit("RemoveImprovements");
+                //Log.Exit("RemoveImprovements");
                 return;
             }
 
@@ -1156,17 +1177,17 @@ namespace Chummer
 					// TODO: Fix this properly. Generates a null exception if multiple adept powers are added by the improvement, as with the Dragonslayer Mentor Spirit. 
 	                try
 	                {
-		                XmlDocument objXmlMentorDocument = new XmlDocument();
+                        IXmlDocument objXmlMentorDocument = documentFactory.CreateNew();
 		                objXmlMentorDocument = XmlManager.Instance.Load("mentors.xml");
-		                XmlNode objXmlMentorBonus =
+		                IXmlNode objXmlMentorBonus =
 			                objXmlMentorDocument.SelectSingleNode("/chummer/mentors/mentor/choices/choice[name = \"" +
 			                                                      objImprovement.Notes +
 			                                                      "\"]");
-		                XmlNodeList objXmlPowerList = objXmlMentorBonus["bonus"].SelectNodes("specificpower");
-		                foreach (XmlNode objXmlSpecificPower in objXmlPowerList)
+		                IXmlNodeList objXmlPowerList = objXmlMentorBonus["bonus"].SelectNodes("specificpower");
+		                foreach (IXmlNode objXmlSpecificPower in objXmlPowerList)
 		                {
-			                // Get the Power information
-			                XmlDocument objXmlDocument = new XmlDocument();
+                            // Get the Power information
+                            IXmlDocument objXmlDocument = documentFactory.CreateNew();
 			                objXmlDocument = XmlManager.Instance.Load("powers.xml");
 
 			                string strPowerName = objXmlSpecificPower["name"].InnerText;
@@ -1969,7 +1990,7 @@ namespace Chummer
 
 			_objCharacter.ImprovementHook(objImprovementList, this);
 
-			Log.Exit("RemoveImprovements");
+			//Log.Exit("RemoveImprovements");
         }
 
 		/// <summary>
@@ -1993,34 +2014,34 @@ namespace Chummer
 			int intValue = 0, int intRating = 1, int intMinimum = 0, int intMaximum = 0, int intAugmented = 0,
 			int intAugmentedMaximum = 0, string strExclude = "", bool blnAddToRating = false)
 		{
-            Log.Enter("CreateImprovement");
-			Log.Info(
-				"strImprovedName = " + strImprovedName);
-			Log.Info(
-				"objImprovementSource = " + objImprovementSource.ToString());
-			Log.Info(
-				"strSourceName = " + strSourceName);
-			Log.Info(
-				"objImprovementType = " + objImprovementType.ToString());
-            Log.Info( "strUnique = " + strUnique);
-			Log.Info(
-				"intValue = " + intValue.ToString());
-			Log.Info(
-				"intRating = " + intRating.ToString());
-			Log.Info(
-				"intMinimum = " + intMinimum.ToString());
-			Log.Info(
-				"intMaximum = " + intMaximum.ToString());
-			Log.Info(
-				"intAugmented = " + intAugmented.ToString());
-			Log.Info(
-				"intAugmentedMaximum = " + intAugmentedMaximum.ToString());
-            Log.Info( "strExclude = " + strExclude);
-			Log.Info(
-				"blnAddToRating = " + blnAddToRating.ToString());
+   //         Log.Enter("CreateImprovement");
+			//Log.Info(
+			//	"strImprovedName = " + strImprovedName);
+			//Log.Info(
+			//	"objImprovementSource = " + objImprovementSource.ToString());
+			//Log.Info(
+			//	"strSourceName = " + strSourceName);
+			//Log.Info(
+			//	"objImprovementType = " + objImprovementType.ToString());
+   //         Log.Info( "strUnique = " + strUnique);
+			//Log.Info(
+			//	"intValue = " + intValue.ToString());
+			//Log.Info(
+			//	"intRating = " + intRating.ToString());
+			//Log.Info(
+			//	"intMinimum = " + intMinimum.ToString());
+			//Log.Info(
+			//	"intMaximum = " + intMaximum.ToString());
+			//Log.Info(
+			//	"intAugmented = " + intAugmented.ToString());
+			//Log.Info(
+			//	"intAugmentedMaximum = " + intAugmentedMaximum.ToString());
+   //         Log.Info( "strExclude = " + strExclude);
+			//Log.Info(
+			//	"blnAddToRating = " + blnAddToRating.ToString());
             
             // Record the improvement.
-			Improvement objImprovement = new Improvement();
+			Improvement objImprovement = new Improvement(displayFactory);
 			objImprovement.ImprovedName = strImprovedName;
 			objImprovement.ImproveSource = objImprovementSource;
 			objImprovement.SourceName = strSourceName;
@@ -2045,7 +2066,7 @@ namespace Chummer
 				_lstTransaction.Add(objImprovement);
 			}
 
-            Log.Exit("CreateImprovement");
+            //Log.Exit("CreateImprovement");
         }
 
 		/// <summary>
@@ -2053,12 +2074,12 @@ namespace Chummer
 		/// </summary>
 		public void Commit()
 		{
-            Log.Enter("Commit");
+            //Log.Enter("Commit");
             // Clear all of the Improvements from the Transaction List.
 
 			_objCharacter.ImprovementHook(_lstTransaction, this);
 			_lstTransaction.Clear();
-            Log.Exit("Commit");
+            //Log.Exit("Commit");
         }
 
 		/// <summary>
@@ -2066,13 +2087,13 @@ namespace Chummer
 		/// </summary>
 		private void Rollback()
 		{
-            Log.Enter("Rollback");
+            //Log.Enter("Rollback");
             // Remove all of the Improvements that were added.
 			foreach (Improvement objImprovement in _lstTransaction)
 				RemoveImprovements(objImprovement.ImproveSource, objImprovement.SourceName);
 
 			_lstTransaction.Clear();
-            Log.Exit("Rollback");
+            //Log.Exit("Rollback");
         }
 
 		#endregion

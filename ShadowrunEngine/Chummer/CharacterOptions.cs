@@ -99,8 +99,8 @@ namespace Chummer
 		private int _intNuyenPerBP = 2000;
 		private int _intRestrictedCostMultiplier = 1;
 		private bool _automaticBackstory = true;
-		
-		private readonly XmlDocument _objBookDoc = new XmlDocument();
+
+        private readonly IXmlDocument _objBookDoc;
 		private string _strBookXPath = "";
 		private string _strExcludeLimbSlot = "";
 
@@ -175,8 +175,9 @@ namespace Chummer
 	    private bool _mysaddPpCareer;
 
 	    #region Initialization, Save, and Load Methods
-		public CharacterOptions(Character character)
+		public CharacterOptions(Character character, IXmlDocumentFactory documentFactory)
 		{
+            _objBookDoc = documentFactory.CreateNew();
 			_character = character;
 			// Create the settings directory if it does not exist.
 			string settingsDirectoryPath = Path.Combine(Application.StartupPath, "settings");

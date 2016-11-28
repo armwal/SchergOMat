@@ -5821,7 +5821,7 @@ namespace Chummer
 		/// <param name="objXmlArtNode">XmlNode to create the object from.</param>
 		/// <param name="objNode">TreeNode to populate a TreeView.</param>
 		/// <param name="objCharacter">Character the Martial Art is being added to.</param>
-		public void Create(XmlNode objXmlArtNode, TreeNode objNode, Character objCharacter)
+		public void Create(IXmlNode objXmlArtNode, ITreeNode objNode, Character objCharacter)
 		{
 			_objCharacter = objCharacter;
 			_strName = objXmlArtNode["name"].InnerText;

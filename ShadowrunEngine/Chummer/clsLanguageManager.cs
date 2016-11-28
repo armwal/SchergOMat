@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
 using System.Xml;
 
 namespace Chummer
@@ -72,22 +71,25 @@ namespace Chummer
 		static readonly LanguageManager _objInstance = new LanguageManager();
 		static private readonly Dictionary<string, string> _objDictionary = new Dictionary<string, string>();
 		static bool _blnLoaded = false;
-		static readonly XmlDocument _objXmlDocument = new XmlDocument();
-		static XmlDocument _objXmlDataDocument;
+		static readonly IXmlDocument _objXmlDocument;
+		static IXmlDocument _objXmlDataDocument;
+        static IXmlDocumentFactory documentFactory;
+        static IMessageDisplay messageDisplay;
 
-		#region Constructor and Instance
-		static LanguageManager()
-		{
-			string[] strArgs = Environment.GetCommandLineArgs();
-			if (strArgs.GetUpperBound(0) > 0)
-			{
-				if (strArgs[1] == "/debug")
-					_blnDebug = true;
-			}
-			RefreshStrings();
-		}
+        #region Constructor and Instance
+        //static LanguageManager()
+        //{
+        //          _objXmlDataDocument = documentFactory.CreateNew();
+        //	//string[] strArgs = Environment.GetCommandLineArgs();
+        //	//if (strArgs.GetUpperBound(0) > 0)
+        //	//{
+        //	//	if (strArgs[1] == "/debug")
+        //	//		_blnDebug = true;
+        //	//}
+        //	RefreshStrings();
+        //}
 
-		LanguageManager()
+        LanguageManager()
 		{
 		}
 
@@ -116,9 +118,9 @@ namespace Chummer
 		}
 
 		/// <summary>
-		/// XmlDocument that holds UI translations.
+		/// IXmlDocument that holds UI translations.
 		/// </summary>
-		public XmlDocument XmlDoc
+		public IXmlDocument XmlDoc
 		{
 			get
 			{
@@ -127,9 +129,9 @@ namespace Chummer
 		}
 
 		/// <summary>
-		/// XmlDocument that holds item name translations.
+		/// IXmlDocument that holds item name translations.
 		/// </summary>
-		public XmlDocument DataDoc
+		public IXmlDocument DataDoc
 		{
 			get
 			{
@@ -142,54 +144,60 @@ namespace Chummer
 		/// <summary>
 		/// Load the English document and cache it in the List of LanguageStrings so it only needs to be read in once.
 		/// </summary>
-		private static void RefreshStrings()
-		{
-			if (Utils.IsRunningInVisualStudio()) return;
+//		private static void RefreshStrings()
+//		{
+//#if DEBUG
+//            return;
+//#endif
+//            //if (Utils.IsRunningInVisualStudio()) return;
             
-			try
-			{
-				_objDictionary.Clear();
-				XmlDocument objEnglishDocument = new XmlDocument();
-				string strFilePath = Path.Combine(Application.StartupPath, "lang", "en-us.xml");
-				objEnglishDocument.Load(strFilePath);
-				foreach (XmlNode objNode in objEnglishDocument.SelectNodes("/chummer/strings/string"))
-				{
-					LanguageString objString = new LanguageString();
-					objString.Key = objNode["key"].InnerText;
-					objString.Text = objNode["text"].InnerText;
-					_objDictionary.Add(objNode["key"].InnerText, objNode["text"].InnerText);
-				}
-				_blnLoaded = true;
-			}
-			catch(Exception ex)
-			{
-				MessageBox.Show(ex.ToString());
-				//TODO this might fuck stuff up, remove before release, or fix?
-				//Had obscure bug where this closed visual studio
-				MessageBox.Show("Could not load default language file!" + Path.Combine(Application.StartupPath, "lang", "en-us.xml"), "Default Language Missing", MessageBoxButtons.OK, MessageBoxIcon.Error);
-				//Application.Exit();
-			}
-		}
+//			try
+//			{
+//				_objDictionary.Clear();
+//                IXmlDocument objEnglishDocument = documentFactory.CreateNew();
+//				string strFilePath = Path.Combine(Application.StartupPath, "lang", "en-us.xml");
+//				objEnglishDocument.Load(strFilePath);
+//				foreach (XmlNode objNode in objEnglishDocument.SelectNodes("/chummer/strings/string"))
+//				{
+//					LanguageString objString = new LanguageString();
+//					objString.Key = objNode["key"].InnerText;
+//					objString.Text = objNode["text"].InnerText;
+//					_objDictionary.Add(objNode["key"].InnerText, objNode["text"].InnerText);
+//				}
+//				_blnLoaded = true;
+//			}
+//			catch(Exception ex)
+//			{
+//				MessageBox.Show(ex.ToString());
+//				//TODO this might fuck stuff up, remove before release, or fix?
+//				//Had obscure bug where this closed visual studio
+//				MessageBox.Show("Could not load default language file!" + Path.Combine(Application.StartupPath, "lang", "en-us.xml"), "Default Language Missing", MessageBoxButtons.OK, MessageBoxIcon.Error);
+//				//Application.Exit();
+//			}
+//		}
 
 		/// <summary>
 		/// Load the selected XML file and its associated custom file.
 		/// </summary>
 		/// <param name="strLanguage">Language to Load.</param>
 		/// <param name="objObject">Object to translate after loading the data.</param>
-		public void Load(string strLanguage, object objObject)
+		public void Load(string strLanguage, object objObject, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay)
 		{
-			// _strLanguage is populated when the language is read for the first time, meaning this is only triggered once (and language is only read in once since it shouldn't change).
-			string strFilePath = "";
+            LanguageManager.documentFactory = documentFactory;
+            LanguageManager.messageDisplay = messageDisplay;
+            _objXmlDataDocument = documentFactory.CreateNew();
+            // _strLanguage is populated when the language is read for the first time, meaning this is only triggered once (and language is only read in once since it shouldn't change).
+            string strFilePath = "";
 			if (strLanguage != "en-us" && _strLanguage == "")
 			{
 				try
 				{
 					_strLanguage = strLanguage;
-					XmlDocument objLanguageDocument = new XmlDocument();
+                    IXmlDocument objLanguageDocument = documentFactory.CreateNew();
 					strFilePath = Path.Combine(Application.StartupPath, "lang", strLanguage + ".xml");
 					objLanguageDocument.Load(strFilePath);
 					_objXmlDocument.Load(strFilePath);
-					foreach (XmlNode objNode in objLanguageDocument.SelectNodes("/chummer/strings/string"))
+					foreach (IXmlNode objNode in objLanguageDocument.SelectNodes("/chummer/strings/string"))
 					{
 						// Look for the English version of the found string. If it has been found, replace the English contents with the contents from this file.
 						// If the string was not found, then someone has inserted a Key that should not exist and is ignored.
@@ -206,7 +214,7 @@ namespace Chummer
 				catch (Exception)
 				{
 					_strLanguage = strLanguage;
-					MessageBox.Show("Language file " + strFilePath + " could not be loaded.", "Cannot Load Language", MessageBoxButtons.OK, MessageBoxIcon.Error);
+					messageDisplay.ShowError("Language file " + strFilePath + " could not be loaded.", "Cannot Load Language");
 					return;
 				}
 
@@ -216,8 +224,8 @@ namespace Chummer
 				{
 					try
 					{
-						_objXmlDataDocument = new XmlDocument();
-						_objXmlDataDocument.Load(strDataPath);
+						_objXmlDataDocument = documentFactory.CreateNew();
+                        _objXmlDataDocument.Load(strDataPath);
 					}
 					catch
 					{
@@ -526,7 +534,7 @@ namespace Chummer
 		{
 			// Load the English version.
 			List<LanguageString> lstEnglish = new List<LanguageString>();
-			XmlDocument objEnglishDocument = new XmlDocument();
+            IXmlDocument objEnglishDocument = documentFactory.CreateNew();
 			string strFilePath = Path.Combine(Application.StartupPath, "lang", "en-us.xml");
 			objEnglishDocument.Load(strFilePath);
 			foreach (XmlNode objNode in objEnglishDocument.SelectNodes("/chummer/strings/string"))
@@ -539,7 +547,7 @@ namespace Chummer
 
 			// Load the selected language version.
 			List<LanguageString> lstLanguage = new List<LanguageString>();
-			XmlDocument objLanguageDocument = new XmlDocument();
+			XmlDocument objLanguageDocument = new IXmlDocument();
 			string strLangPath = Path.Combine(Application.StartupPath, "lang", strLanguage + ".xml");
 			objLanguageDocument.Load(strLangPath);
 			foreach (XmlNode objNode in objLanguageDocument.SelectNodes("/chummer/strings/string"))
@@ -584,7 +592,7 @@ namespace Chummer
 			// Only attempt to translate if we're not using English. Don't attempt to translate an empty string either.
 			if (_strLanguage != "en-us" && strExtra.Trim() != "")
 			{
-				XmlDocument objXmlDocument = new XmlDocument();
+				XmlDocument objXmlDocument = new IXmlDocument();
 
 				// Look in Weapon Categories.
 				objXmlDocument = XmlManager.Instance.Load("weapons.xml");

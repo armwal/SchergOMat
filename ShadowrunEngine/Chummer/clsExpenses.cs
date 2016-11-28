@@ -16,7 +16,8 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
-﻿using System;
+using System;
+using System.Globalization;
 using System.Xml;
 
 namespace Chummer
@@ -162,7 +163,7 @@ namespace Chummer
 		/// Load the KarmaLogEntry from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_objKarmaExpenseType = ConvertToKarmaExpenseType(objNode["karmatype"].InnerText);
 			_objNuyenExpenseType = ConvertToNuyenExpenseType(objNode["nuyentype"].InnerText);
@@ -309,7 +310,7 @@ namespace Chummer
 		public ExpenseLogEntry()
 		{
 			_guiID = Guid.NewGuid();
-			LanguageManager.Instance.Load(GlobalOptions.Instance.Language, null);
+			LanguageManager.Instance.Load("en-us", null);
 		}
 
 		/// <summary>
@@ -358,7 +359,7 @@ namespace Chummer
 		public void Load(IXmlNode objNode)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
-			_datDate = DateTime.Parse(objNode["date"].InnerText, GlobalOptions.Instance.CultureInfo);
+			_datDate = DateTime.Parse(objNode["date"].InnerText, CultureInfo.InvariantCulture);
 			_intAmount = Convert.ToInt32(objNode["amount"].InnerText);
 			_strReason = objNode["reason"].InnerText;
 			_objExpenseType = ConvertToExpenseType(objNode["type"].InnerText);
