@@ -39,7 +39,8 @@
     <Compile Include="Chummer\clsCommon.cs" />
     <Compile Include="Chummer\clsOptions.cs" />
     <Compile Include="Chummer\clsUtils.cs" />
-    <Compile Include="Chummer\KnowledgeSkill.cs" />
+    <Compile Include="Chummer\Skills\ExoticSkill.cs" />
+    <Compile Include="Chummer\Skills\KnowledgeSkill.cs" />
     <Compile Include="Chummer\ObservableCollectionExtensions.cs" />
     <Compile Include="Chummer\CharacterOptions.cs" />
     <Compile Include="Chummer\clsCharacter.cs" />
@@ -70,9 +71,14 @@
     <Compile Include="ChummerInterfaces\IDisplayFactory.cs" />
     <Compile Include="ChummerInterfaces\IXmlDocument.cs" />
     <Compile Include="ChummerInterfaces\IXmlWriter.cs" />
+    <Compile Include="Chummer\Skills\Skill.core.cs" />
+    <Compile Include="Chummer\Skills\SkillExtensions.cs" />
+    <Compile Include="Chummer\Skills\SkillGroup.cs" />
+    <Compile Include="Chummer\Skills\SkillSorters.cs" />
+    <Compile Include="Chummer\Skills\SkillSpecialization.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Chummer\Skill.cs" />
-    <Compile Include="Chummer\SkillsSection.cs" />
+    <Compile Include="Chummer\Skills\Skill.cs" />
+    <Compile Include="Chummer\Skills\SkillsSection.cs" />
     <Compile Include="Chummer\Timekeeper.cs" />
   </ItemGroup>
   <ItemGroup>

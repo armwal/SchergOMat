@@ -39,7 +39,7 @@ namespace Chummer
 
     public delegate bool TryParseFunction<T>(string input, out T result);
 
-    public interface IXmlNode : IEnumerable
+    public interface IXmlNode : IEnumerable<IXmlNode>
     {
         string Name { get; }
         string Value { get; }

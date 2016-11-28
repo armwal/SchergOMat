@@ -19,5 +19,8 @@ namespace Chummer
         string PickSpell(Character character, string description, string limitCategory, string forceSpellName, bool ignoreReqs);
         string PickMentorSpirit(Character character, string xmlFile, out IXmlNode bonusNode, out IXmlNode choice1BonusNode, out string choice1, out IXmlNode choice2BonusNode, out string choice2);
         string PickSide(Character character, string description, string forceValue);
+        string PickText(Character character, string description, string selectedValue);
+        string PickPower(Character character, string description, string limitToPowers);
+        string PickOptionalPower(Character character, string description, List<KeyValuePair<string, string>> limitList, string singlePower)
     }
 }

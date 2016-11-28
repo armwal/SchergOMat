@@ -7,10 +7,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
-using Chummer.Annotations;
 using Chummer.Backend;
 using Chummer.Backend.Equipment;
-using Chummer.Datastructures;
 
 namespace Chummer.Skills
 {
@@ -21,7 +19,7 @@ namespace Chummer.Skills
 		/// Called during save to allow derived classes to save additional infomation required to rebuild state
 		/// </summary>
 		/// <param name="writer"></param>
-		protected virtual void SaveExtendedData(XmlTextWriter writer)
+		protected virtual void SaveExtendedData(IXmlWriter writer)
 		{
 		}
 
@@ -37,7 +35,7 @@ namespace Chummer.Skills
 
 
 
-		public void WriteTo(XmlTextWriter writer)
+		public void WriteTo(IXmlWriter writer)
 		{
 			writer.WriteStartElement("skill");
 			writer.WriteElementString("guid", Id.ToString());
@@ -66,7 +64,7 @@ namespace Chummer.Skills
 
 		}
 
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("skill");
 
@@ -127,12 +125,12 @@ namespace Chummer.Skills
 		/// <param name="n">The XML node describing the skill</param>
 		/// <param name="character">The character this skill belongs to</param>
 		/// <returns></returns>
-		public static Skill Load(Character character, XmlNode n)
+		public static Skill Load(Character character, IXmlNode n)
 		{
 			if (n["suid"] == null) return null;
 
 			Guid suid;
-			XmlDocument skills = XmlManager.Instance.Load("skills.xml");
+			IXmlDocument skills = XmlManager.Instance.Load("skills.xml");
 			if (!Guid.TryParse(n["suid"].InnerText, out suid))
 			{
 				return null;
@@ -140,7 +138,7 @@ namespace Chummer.Skills
 			Skill skill;
 			if (suid != Guid.Empty)
 			{
-				XmlNode node = skills.SelectSingleNode($"/chummer/skills/skill[id = '{n["suid"].InnerText}']");
+				IXmlNode node = skills.SelectSingleNode($"/chummer/skills/skill[id = '{n["suid"].InnerText}']");
 
 				if (node == null) return null;
 
@@ -169,7 +167,7 @@ namespace Chummer.Skills
 				}
 			}
 
-			XmlElement element = n["guid"];
+			var element = n["guid"];
 			if (element != null) skill.Id = Guid.Parse(element.InnerText);
 
 			n.TryGetField("karma", out skill._karma);
@@ -177,11 +175,11 @@ namespace Chummer.Skills
 			n.TryGetField("buywithkarma", out skill._buyWithKarma);
 			n.TryGetField("notes", out skill._strNotes);
 
-			foreach (XmlNode spec in n.SelectNodes("specs/spec"))
+			foreach (IXmlNode spec in n.SelectNodes("specs/spec"))
 			{
 				skill.Specializations.Add(SkillSpecialization.Load(spec));
 			}
-			XmlNode objCategoryNode = skills.SelectSingleNode($"/chummer/categories/category[. = '{skill.SkillCategory}']");
+			IXmlNode objCategoryNode = skills.SelectSingleNode($"/chummer/categories/category[. = '{skill.SkillCategory}']");
 
 			if (objCategoryNode != null && objCategoryNode.Attributes?["translate"] != null)
 			{
@@ -197,7 +195,7 @@ namespace Chummer.Skills
 		/// <param name="character"></param>
 		/// <param name="n"></param>
 		/// <returns></returns>
-		public static Skill LegacyLoad(Character character, XmlNode n)
+		public static Skill LegacyLoad(Character character, IXmlNode n)
 		{
 			Guid suid;
 			Skill skill;
@@ -221,7 +219,7 @@ namespace Chummer.Skills
 			}
 			else
 			{
-				XmlNode data =
+				IXmlNode data =
 					XmlManager.Instance.Load("skills.xml").SelectSingleNode($"/chummer/skills/skill[id = '{suid}']");
 
 				//Some stuff apparently have a guid of 0000-000... (only exotic?)
@@ -249,7 +247,7 @@ namespace Chummer.Skills
 				skill._buyWithKarma = n.TryCheckValue("buywithkarma", "True");
 			}
 
-			var v = from XmlNode node
+			var v = from IXmlNode node
 				in n.SelectNodes("skillspecializations/skillspecialization")
 				select SkillSpecialization.Load(node);
 			var q = v.ToList();
@@ -270,7 +268,7 @@ namespace Chummer.Skills
 		/// <param name="n">The XML node describing the skill</param>
 		/// <param name="character">The character the skill belongs to</param>
 		/// <returns></returns>
-		public static Skill FromData(XmlNode n, Character character)
+		public static Skill FromData(IXmlNode n, Character character)
 		{
 			Skill s;
 			if (n["exotic"] != null && n["exotic"].InnerText == "Yes")
@@ -281,8 +279,8 @@ namespace Chummer.Skills
 			}
 			else
 			{
-				XmlDocument document = XmlManager.Instance.Load("skills.xml");
-				XmlNode knoNode = null;
+				IXmlDocument document = XmlManager.Instance.Load("skills.xml");
+				IXmlNode knoNode = null;
 				string category = n["category"].InnerText; //if missing we have bigger problems, and a nullref is probably prefered
 				bool knoSkill;
 
@@ -345,7 +343,7 @@ namespace Chummer.Skills
 
 
 		//load from data
-		protected Skill(Character character, XmlNode n) : this(character, n["skillgroup"].InnerText)
+		protected Skill(Character character, IXmlNode n) : this(character, n["skillgroup"].InnerText)
 			//Ugly hack, needs by then
 		{
 			_name = n["name"].InnerText; //No need to catch errors (for now), if missing we are fsked anyway
@@ -361,7 +359,7 @@ namespace Chummer.Skills
 			AttributeObject.PropertyChanged += OnLinkedAttributeChanged;
 
 			SuggestedSpecializations = new List<ListItem>();
-			foreach (XmlNode node in n["specs"].ChildNodes)
+			foreach (IXmlNode node in n["specs"].ChildNodes)
 			{
 				SuggestedSpecializations.Add(ListItem.AutoXml(node.InnerText, node));
 			}
@@ -502,7 +500,7 @@ namespace Chummer.Skills
 
 		//TODO A unit test here?, I know we don't have them, but this would be improved by some
 		//Or just ignore support for multiple specizalizations even if the rules say it is possible?
-		public BindingList<SkillSpecialization> Specializations { get; } = new BindingList<SkillSpecialization>();
+		public ObservableCollection<SkillSpecialization> Specializations { get; } = new ObservableCollection<SkillSpecialization>();
 
 		public string Specialization
 		{
@@ -693,7 +691,7 @@ namespace Chummer.Skills
 
 			if (value == null)
 			{
-				Log.Warning(new object[]{"Skill Tooltip GetName value = null", source.SourceName, source.ImproveSource, source.ImproveType, source.ImprovedName});
+				//Log.Warning(new object[]{"Skill Tooltip GetName value = null", source.SourceName, source.ImproveSource, source.ImproveType, source.ImprovedName});
 			}
 
 			return value ?? source.ImproveSource + " source not found";

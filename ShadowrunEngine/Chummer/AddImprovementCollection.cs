@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Text;
 using System.Xml;
-using Chummer.Annotations;
 using Chummer.Backend;
 using Chummer.Backend.Equipment;
 using Chummer.Skills;
@@ -17,8 +15,9 @@ namespace Chummer.Classes
 		private readonly ImprovementManager _manager;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IXmlDocumentFactory documentFactory;
 
-		public AddImprovementCollection(Character character, ImprovementManager manager, Improvement.ImprovementSource objImprovementSource, string sourceName, string strUnique, string forcedValue, string limitSelection, string selectedValue, bool blnConcatSelectedValue, string strFriendlyName, int intRating, Func<string, int, int> valueToInt, Action rollback, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+		public AddImprovementCollection(Character character, ImprovementManager manager, Improvement.ImprovementSource objImprovementSource, string sourceName, string strUnique, string forcedValue, string limitSelection, string selectedValue, bool blnConcatSelectedValue, string strFriendlyName, int intRating, Func<string, int, int> valueToInt, Action rollback, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IXmlDocumentFactory documentFactory)
 		{
 			_objCharacter = character;
 			_manager = manager;
@@ -34,6 +33,9 @@ namespace Chummer.Classes
 			ValueToInt = valueToInt;
 			Rollback = rollback;
 			Commit = manager.Commit;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
+            this.documentFactory = documentFactory;
 		}
 
 		public string SourceName;
@@ -1369,7 +1371,7 @@ namespace Chummer.Classes
 		{
 			//Log.Info("martialart");
 			//Log.Info("martialart = " + bonusNode.OuterXml.ToString());
-			IXmlDocument _objIXmlDocument = XmlManager.Instance.Load("martialarts.IXml");
+			IXmlDocument _objIXmlDocument = XmlManager.Instance.Load("martialarts.Xml");
 			IXmlNode objIXmlArt =
 				_objIXmlDocument.SelectSingleNode("/chummer/martialarts/martialart[name = \"" + bonusNode.InnerText +
 												 "\"]");
@@ -2364,52 +2366,55 @@ namespace Chummer.Classes
 				{
 					//Log.Info("selectlimit = " + bonusNode["selectlimit"].OuterXml.ToString());
 					ForcedValue = "";
-					// Display the Select Limit window and record which Limit was selected.
-					frmSelectLimit frmPickLimit = new frmSelectLimit();
+                    // Display the Select Limit window and record which Limit was selected
+                    string description = "";
+					//frmSelectLimit frmPickLimit = new frmSelectLimit();
 					if (_strFriendlyName != "")
-						frmPickLimit.Description = LanguageManager.Instance.GetString("String_Improvement_SelectLimitNamed")
+                        description = LanguageManager.Instance.GetString("String_Improvement_SelectLimitNamed")
 							.Replace("{0}", _strFriendlyName);
 					else
-						frmPickLimit.Description = LanguageManager.Instance.GetString("String_Improvement_SelectLimit");
+                        description = LanguageManager.Instance.GetString("String_Improvement_SelectLimit");
 
-					if (bonusNode["selectlimit"].InnerXml.Contains("<limit>"))
+                    List<string> limitList = new List<string>();
+                    if (bonusNode["selectlimit"].InnerXml.Contains("<limit>"))
 					{
-						List<string> strValue = new List<string>();
 						foreach (IXmlNode objIXmlAttribute in bonusNode["selectlimit"].SelectNodes("limit"))
-							strValue.Add(objIXmlAttribute.InnerText);
-						frmPickLimit.LimitToList(strValue);
+                            limitList.Add(objIXmlAttribute.InnerText);
+						//frmPickLimit.LimitToList(strValue);
 					}
 
-					if (bonusNode["selectlimit"].InnerXml.Contains("<excludelimit>"))
+                    List<string> removeList = new List<string>();
+                    if (bonusNode["selectlimit"].InnerXml.Contains("<excludelimit>"))
 					{
-						List<string> strValue = new List<string>();
 						foreach (IXmlNode objIXmlAttribute in bonusNode["selectlimit"].SelectNodes("excludelimit"))
-							strValue.Add(objIXmlAttribute.InnerText);
-						frmPickLimit.RemoveFromList(strValue);
+                            removeList.Add(objIXmlAttribute.InnerText);
+						//frmPickLimit.RemoveFromList(strValue);
 					}
 
 					// Check to see if there is only one possible selection because of _strLimitSelection.
 					if (ForcedValue != "")
 						LimitSelection = ForcedValue;
 
-					//Log.Info("_strForcedValue = " + ForcedValue);
-					//Log.Info("_strLimitSelection = " + LimitSelection);
+                    //Log.Info("_strForcedValue = " + ForcedValue);
+                    //Log.Info("_strLimitSelection = " + LimitSelection);
 
-					if (LimitSelection != "")
-					{
-						frmPickLimit.SingleLimit(LimitSelection);
-						frmPickLimit.Opacity = 0;
-					}
+                    //if (LimitSelection != "")
+                    //{
+                    //	frmPickLimit.SingleLimit(LimitSelection);
+                    //	frmPickLimit.Opacity = 0;
+                    //}
 
-					frmPickLimit.ShowDialog();
+                    //frmPickLimit.ShowDialog();
+                    string selected = messageDisplay.PickLimit(_objCharacter, description, limitList, removeList, LimitSelection);
 
 					// Make sure the dialogue window was not canceled.
-					if (frmPickLimit.DialogResult == DialogResult.Cancel)
+					//if (frmPickLimit.DialogResult == DialogResult.Cancel)
+                    if (string.IsNullOrEmpty(selected))
 					{
 						throw new AbortedException();
 					}
 
-					SelectedValue = frmPickLimit.SelectedLimit;
+					SelectedValue = selected;
 					strSelection = SelectedValue;
 					ForcedValue = SelectedValue;
 
@@ -2421,43 +2426,70 @@ namespace Chummer.Classes
 				{
 					//Log.Info("selectskill = " + bonusNode["selectskill"].OuterXml.ToString());
 					IXmlNode nodSkill = bonusNode;
-					// Display the Select Skill window and record which Skill was selected.
-					frmSelectSkill frmPickSkill = new frmSelectSkill(_objCharacter);
+                    // Display the Select Skill window and record which Skill was selected.
+                    //frmSelectSkill frmPickSkill = new frmSelectSkill(_objCharacter);
+                    string description = "";
 					if (_strFriendlyName != "")
-						frmPickSkill.Description = LanguageManager.Instance.GetString("String_Improvement_SelectSkillNamed")
+                        description = LanguageManager.Instance.GetString("String_Improvement_SelectSkillNamed")
 							.Replace("{0}", _strFriendlyName);
 					else
-						frmPickSkill.Description = LanguageManager.Instance.GetString("String_Improvement_SelectSkill");
+                        description = LanguageManager.Instance.GetString("String_Improvement_SelectSkill");
 
-					if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillgroup"))
-						frmPickSkill.OnlySkillGroup = nodSkill.SelectSingleNode("selectskill").Attributes["skillgroup"].InnerText;
-					else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillcategory"))
-						frmPickSkill.OnlyCategory = nodSkill.SelectSingleNode("selectskill").Attributes["skillcategory"].InnerText;
-					else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("excludecategory"))
-						frmPickSkill.ExcludeCategory = nodSkill.SelectSingleNode("selectskill").Attributes["excludecategory"].InnerText;
-					else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("limittoskill"))
-						frmPickSkill.LimitToSkill = nodSkill.SelectSingleNode("selectskill").Attributes["limittoskill"].InnerText;
+                    
+					//if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillgroup"))
+					//	frmPickSkill.OnlySkillGroup = nodSkill.SelectSingleNode("selectskill").Attributes["skillgroup"].InnerText;
+					//else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillcategory"))
+					//	frmPickSkill.OnlyCategory = nodSkill.SelectSingleNode("selectskill").Attributes["skillcategory"].InnerText;
+					//else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("excludecategory"))
+					//	frmPickSkill.ExcludeCategory = nodSkill.SelectSingleNode("selectskill").Attributes["excludecategory"].InnerText;
+					//else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("limittoskill"))
+					//	frmPickSkill.LimitToSkill = nodSkill.SelectSingleNode("selectskill").Attributes["limittoskill"].InnerText;
 
-					if (ForcedValue.StartsWith("Adept:") || ForcedValue.StartsWith("Magician:"))
+                    string limitCategory = "";
+                    string limitValue = "";
+                    if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillgroup"))
+                    {
+                        limitCategory = "OnlySkillGroup";
+                        limitValue = nodSkill.SelectSingleNode("selectskill").Attributes["skillgroup"].InnerText;
+                    }
+                    else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillcategory"))
+                    {
+                        limitCategory = "OnlyCategory";
+                        limitValue = nodSkill.SelectSingleNode("selectskill").Attributes["skillcategory"].InnerText;
+                    }
+                    else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("excludecategory"))
+                    {
+                        limitCategory = "ExcludeCategory";
+                        limitValue = nodSkill.SelectSingleNode("selectskill").Attributes["excludecategory"].InnerText;
+                    }
+                    else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("limittoskill"))
+                    {
+                        limitCategory = "LimitToSkill";
+                        limitValue = nodSkill.SelectSingleNode("selectskill").Attributes["limittoskill"].InnerText;
+                    }
+
+                    if (ForcedValue.StartsWith("Adept:") || ForcedValue.StartsWith("Magician:"))
 						ForcedValue = "";
 
-					//Log.Info("_strForcedValue = " + ForcedValue);
-					//Log.Info("_strLimitSelection = " + LimitSelection);
+                    //Log.Info("_strForcedValue = " + ForcedValue);
+                    //Log.Info("_strLimitSelection = " + LimitSelection);
 
-					if (ForcedValue != "")
-					{
-						frmPickSkill.OnlySkill = ForcedValue;
-						frmPickSkill.Opacity = 0;
-					}
-					frmPickSkill.ShowDialog();
+                    //if (ForcedValue != "")
+                    //{
+                    //	frmPickSkill.OnlySkill = ForcedValue;
+                    //	frmPickSkill.Opacity = 0;
+                    //}
+                    //frmPickSkill.ShowDialog();
+                    string selected = messageDisplay.PickSkill(_objCharacter, description, limitCategory, limitValue, ForcedValue);
 
 					// Make sure the dialogue window was not canceled.
-					if (frmPickSkill.DialogResult == DialogResult.Cancel)
+					//if (frmPickSkill.DialogResult == DialogResult.Cancel)
+                    if (string.IsNullOrEmpty(selected))
 					{
 						throw new AbortedException();
 					}
 
-					SelectedValue = frmPickSkill.SelectedSkill;
+					SelectedValue = selected;
 					ForcedValue = SelectedValue;
 					strSelection = SelectedValue;
 
@@ -2469,7 +2501,7 @@ namespace Chummer.Classes
 				if (bonusNode["selecttext"] != null)
 				{
 					//Log.Info("selecttext = " + bonusNode["selecttext"].OuterXml.ToString());
-					frmSelectText frmPickText = new frmSelectText();
+					//frmSelectText frmPickText = new frmSelectText();
 
 
 					if (_objCharacter.Pushtext.Count > 0)
@@ -2478,27 +2510,29 @@ namespace Chummer.Classes
 					}
 					else
 					{
-						frmPickText.Description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
+						string description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
 							.Replace("{0}", _strFriendlyName);
 
-						//Log.Info("_strForcedValue = " + ForcedValue);
-						//Log.Info("_strLimitSelection = " + LimitSelection);
+                        //Log.Info("_strForcedValue = " + ForcedValue);
+                        //Log.Info("_strLimitSelection = " + LimitSelection);
 
-						if (LimitSelection != "")
-						{
-							frmPickText.SelectedValue = LimitSelection;
-							frmPickText.Opacity = 0;
-						}
+                        //if (LimitSelection != "")
+                        //{
+                        //	frmPickText.SelectedValue = LimitSelection;
+                        //	frmPickText.Opacity = 0;
+                        //}
 
-						frmPickText.ShowDialog();
+                        //frmPickText.ShowDialog();
+                        string selected = messageDisplay.PickText(_objCharacter, description, LimitSelection);
 
 						// Make sure the dialogue window was not canceled.
-						if (frmPickText.DialogResult == DialogResult.Cancel)
+						//if (frmPickText.DialogResult == DialogResult.Cancel)
+                        if (string.IsNullOrEmpty(selected))
 						{
 							throw new AbortedException();
 						}
 
-						strSelection = frmPickText.SelectedValue;
+						strSelection = selected;
 						LimitSelection = strSelection;
 					}
 					//Log.Info("_strLimitSelection = " + LimitSelection);
@@ -2510,7 +2544,7 @@ namespace Chummer.Classes
 					//Log.Info("specificattribute = " + bonusNode["specificattribute"].OuterXml.ToString());
 					strSelection = bonusNode["specificattribute"]["name"].InnerText.ToString();
 					//Log.Info(
-						"strSelection = " + strSelection);
+						//"strSelection = " + strSelection);
 				}
 
 				if (bonusNode["selectattribute"] != null)
@@ -2520,58 +2554,61 @@ namespace Chummer.Classes
 					if (ForcedValue.StartsWith("Adept"))
 						ForcedValue = "";
 
-					// Display the Select CharacterAttribute window and record which CharacterAttribute was selected.
-					frmSelectAttribute frmPickAttribute = new frmSelectAttribute();
+                    // Display the Select CharacterAttribute window and record which CharacterAttribute was selected.
+                    //frmSelectAttribute frmPickAttribute = new frmSelectAttribute();
+                    string description = "";
 					if (_strFriendlyName != "")
-						frmPickAttribute.Description =
+						description =
 							LanguageManager.Instance.GetString("String_Improvement_SelectAttributeNamed").Replace("{0}", _strFriendlyName);
 					else
-						frmPickAttribute.Description = LanguageManager.Instance.GetString("String_Improvement_SelectAttribute");
+						description = LanguageManager.Instance.GetString("String_Improvement_SelectAttribute");
 
-					// Add MAG and/or RES to the list of Attributes if they are enabled on the form.
-					if (_objCharacter.MAGEnabled)
-						frmPickAttribute.AddMAG();
-					if (_objCharacter.RESEnabled)
-						frmPickAttribute.AddRES();
+                    // Add MAG and/or RES to the list of Attributes if they are enabled on the form.
+                    //if (_objCharacter.MAGEnabled)
+                    //	frmPickAttribute.AddMAG();
+                    //if (_objCharacter.RESEnabled)
+                    //	frmPickAttribute.AddRES();
 
-					if (nodSkill["selectattribute"].InnerXml.Contains("<attribute>"))
+                    List<string> limitList = new List<string>();
+                    if (nodSkill["selectattribute"].InnerXml.Contains("<attribute>"))
 					{
-						List<string> strValue = new List<string>();
 						foreach (IXmlNode objIXmlAttribute in nodSkill["selectattribute"].SelectNodes("attribute"))
-							strValue.Add(objIXmlAttribute.InnerText);
-						frmPickAttribute.LimitToList(strValue);
+                            limitList.Add(objIXmlAttribute.InnerText);
+						//frmPickAttribute.LimitToList(strValue);
 					}
 
-					if (nodSkill["selectattribute"].InnerXml.Contains("<excludeattribute>"))
+                    List<string> removeList = new List<string>();
+                    if (nodSkill["selectattribute"].InnerXml.Contains("<excludeattribute>"))
 					{
-						List<string> strValue = new List<string>();
 						foreach (IXmlNode objIXmlAttribute in nodSkill["selectattribute"].SelectNodes("excludeattribute"))
-							strValue.Add(objIXmlAttribute.InnerText);
-						frmPickAttribute.RemoveFromList(strValue);
+                            removeList.Add(objIXmlAttribute.InnerText);
+						//frmPickAttribute.RemoveFromList(strValue);
 					}
 
 					// Check to see if there is only one possible selection because of _strLimitSelection.
 					if (ForcedValue != "")
 						LimitSelection = ForcedValue;
 
-					//Log.Info("_strForcedValue = " + ForcedValue);
-					//Log.Info("_strLimitSelection = " + LimitSelection);
+                    //Log.Info("_strForcedValue = " + ForcedValue);
+                    //Log.Info("_strLimitSelection = " + LimitSelection);
 
-					if (LimitSelection != "")
-					{
-						frmPickAttribute.SingleAttribute(LimitSelection);
-						frmPickAttribute.Opacity = 0;
-					}
+                    //if (LimitSelection != "")
+                    //{
+                    //	frmPickAttribute.SingleAttribute(LimitSelection);
+                    //	frmPickAttribute.Opacity = 0;
+                    //}
 
-					frmPickAttribute.ShowDialog();
+                    //frmPickAttribute.ShowDialog();
+                    string selected = messageDisplay.PickAttribute(_objCharacter, description, _objCharacter.MAGEnabled, _objCharacter.RESEnabled, limitList, removeList, LimitSelection);
 
 					// Make sure the dialogue window was not canceled.
-					if (frmPickAttribute.DialogResult == DialogResult.Cancel)
+					//if (frmPickAttribute.DialogResult == DialogResult.Cancel)
+                    if (string.IsNullOrEmpty(selected))
 					{
 						throw new AbortedException();
 					}
 
-					SelectedValue = frmPickAttribute.SelectedAttribute;
+					SelectedValue = selected;
 					if (_blnConcatSelectedValue)
 						SourceName += " (" + SelectedValue + ")";
 					strSelection = SelectedValue;
@@ -2626,9 +2663,9 @@ namespace Chummer.Classes
 					objPower = new Power(_objCharacter);
 					_objCharacter.Powers.Add(objPower);
 
-					// Get the Power information
-					IXmlDocument objIXmlDocument = new IXmlDocument();
-					objIXmlDocument = IXmlManager.Instance.Load("powers.IXml");
+                    // Get the Power information
+                    IXmlDocument objIXmlDocument = documentFactory.CreateNew();
+					objIXmlDocument = XmlManager.Instance.Load("powers.Xml");
 					IXmlNode objIXmlPower = objIXmlDocument.SelectSingleNode("/chummer/powers/power[name = \"" + strPowerName + "\"]");
 					//Log.Info("objIXmlPower = " + objIXmlPower.OuterXml.ToString());
 
@@ -2779,25 +2816,28 @@ namespace Chummer.Classes
 
 				if (!blnExistingPower)
 				{
-					// Display the Select Skill window and record which Skill was selected.
-					frmSelectPower frmPickPower = new frmSelectPower(_objCharacter);
-					//Log.Info("selectpower = " + objNode.OuterXml.ToString());
+                    // Display the Select Skill window and record which Skill was selected.
+                    //frmSelectPower frmPickPower = new frmSelectPower(_objCharacter);
+                    //Log.Info("selectpower = " + objNode.OuterXml.ToString());
 
+                    string limit = "";
 					if (objNode.OuterXml.Contains("limittopowers"))
-						frmPickPower.LimitToPowers = objNode.Attributes["limittopowers"].InnerText;
-					frmPickPower.ShowDialog();
+						limit = objNode.Attributes["limittopowers"].InnerText;
+                    //frmPickPower.ShowDialog();
+                    string selected = messageDisplay.PickPower(_objCharacter, "", limit);
 
 					// Make sure the dialogue window was not canceled.
-					if (frmPickPower.DialogResult == DialogResult.Cancel)
+					//if (frmPickPower.DialogResult == DialogResult.Cancel)
+                    if (string.IsNullOrEmpty(selected))
 					{
 						throw new AbortedException();
 					}
 
-					SelectedValue = frmPickPower.SelectedPower;
+					SelectedValue = selected;
 					if (_blnConcatSelectedValue)
 						SourceName += " (" + SelectedValue + ")";
 
-					IXmlDocument objIXmlDocument = IXmlManager.Instance.Load("powers.IXml");
+					IXmlDocument objIXmlDocument = XmlManager.Instance.Load("powers.Xml");
 					IXmlNode objIXmlPower =
 						objIXmlDocument.SelectSingleNode("/chummer/powers/power[name = \"" + SelectedValue + "\"]");
 					string strSelection = "";
@@ -2814,52 +2854,55 @@ namespace Chummer.Classes
 						{
 							//Log.Info("selectlimit = " + objBonus["selectlimit"].OuterXml.ToString());
 							ForcedValue = "";
-							// Display the Select Limit window and record which Limit was selected.
-							frmSelectLimit frmPickLimit = new frmSelectLimit();
+                            // Display the Select Limit window and record which Limit was selected.
+                            //frmSelectLimit frmPickLimit = new frmSelectLimit();
+                            string description = "";
 							if (_strFriendlyName != "")
-								frmPickLimit.Description = LanguageManager.Instance.GetString("String_Improvement_SelectLimitNamed")
+                                description = LanguageManager.Instance.GetString("String_Improvement_SelectLimitNamed")
 									.Replace("{0}", _strFriendlyName);
 							else
-								frmPickLimit.Description = LanguageManager.Instance.GetString("String_Improvement_SelectLimit");
+								description = LanguageManager.Instance.GetString("String_Improvement_SelectLimit");
 
-							if (objBonus["selectlimit"].InnerXml.Contains("<limit>"))
-							{
-								List<string> strValue = new List<string>();
+                            List<string> limitList = new List<string>();
+                            if (objBonus["selectlimit"].InnerXml.Contains("<limit>"))
+							{								
 								foreach (IXmlNode objIXmlAttribute in objBonus["selectlimit"].SelectNodes("limit"))
-									strValue.Add(objIXmlAttribute.InnerText);
-								frmPickLimit.LimitToList(strValue);
+									limitList.Add(objIXmlAttribute.InnerText);
+								//frmPickLimit.LimitToList(strValue);
 							}
 
-							if (objBonus["selectlimit"].InnerXml.Contains("<excludelimit>"))
+                            List<string> removeList = new List<string>();
+                            if (objBonus["selectlimit"].InnerXml.Contains("<excludelimit>"))
 							{
-								List<string> strValue = new List<string>();
 								foreach (IXmlNode objIXmlAttribute in objBonus["selectlimit"].SelectNodes("excludelimit"))
-									strValue.Add(objIXmlAttribute.InnerText);
-								frmPickLimit.RemoveFromList(strValue);
+                                    removeList.Add(objIXmlAttribute.InnerText);
+								//frmPickLimit.RemoveFromList(strValue);
 							}
 
 							// Check to see if there is only one possible selection because of _strLimitSelection.
 							if (ForcedValue != "")
 								LimitSelection = ForcedValue;
 
-							//Log.Info("_strForcedValue = " + ForcedValue);
-							//Log.Info("_strLimitSelection = " + LimitSelection);
+                            //Log.Info("_strForcedValue = " + ForcedValue);
+                            //Log.Info("_strLimitSelection = " + LimitSelection);
 
-							if (LimitSelection != "")
-							{
-								frmPickLimit.SingleLimit(LimitSelection);
-								frmPickLimit.Opacity = 0;
-							}
+                            //if (LimitSelection != "")
+                            //{
+                            //	frmPickLimit.SingleLimit(LimitSelection);
+                            //	frmPickLimit.Opacity = 0;
+                            //}
 
-							frmPickLimit.ShowDialog();
+                            //frmPickLimit.ShowDialog();
+                            string selectedLimit = messageDisplay.PickLimit(_objCharacter, description, limitList, removeList, LimitSelection);
 
 							// Make sure the dialogue window was not canceled.
-							if (frmPickLimit.DialogResult == DialogResult.Cancel)
+							//if (frmPickLimit.DialogResult == DialogResult.Cancel)
+                            if (string.IsNullOrEmpty(selectedLimit))
 							{
 								throw new AbortedException();
 							}
 
-							SelectedValue = frmPickLimit.SelectedLimit;
+							SelectedValue = selectedLimit;
 							strSelection = SelectedValue;
 							ForcedValue = SelectedValue;
 
@@ -2871,43 +2914,69 @@ namespace Chummer.Classes
 						{
 							//Log.Info("selectskill = " + objBonus["selectskill"].OuterXml.ToString());
 							IXmlNode nodSkill = objBonus;
-							// Display the Select Skill window and record which Skill was selected.
-							frmSelectSkill frmPickSkill = new frmSelectSkill(_objCharacter);
+                            // Display the Select Skill window and record which Skill was selected.
+                            //frmSelectSkill frmPickSkill = new frmSelectSkill(_objCharacter);
+                            string description = "";
 							if (_strFriendlyName != "")
-								frmPickSkill.Description = LanguageManager.Instance.GetString("String_Improvement_SelectSkillNamed")
+								description = LanguageManager.Instance.GetString("String_Improvement_SelectSkillNamed")
 									.Replace("{0}", _strFriendlyName);
 							else
-								frmPickSkill.Description = LanguageManager.Instance.GetString("String_Improvement_SelectSkill");
+								description = LanguageManager.Instance.GetString("String_Improvement_SelectSkill");
 
-							if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillgroup"))
-								frmPickSkill.OnlySkillGroup = nodSkill.SelectSingleNode("selectskill").Attributes["skillgroup"].InnerText;
-							else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillcategory"))
-								frmPickSkill.OnlyCategory = nodSkill.SelectSingleNode("selectskill").Attributes["skillcategory"].InnerText;
-							else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("excludecategory"))
-								frmPickSkill.ExcludeCategory = nodSkill.SelectSingleNode("selectskill").Attributes["excludecategory"].InnerText;
-							else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("limittoskill"))
-								frmPickSkill.LimitToSkill = nodSkill.SelectSingleNode("selectskill").Attributes["limittoskill"].InnerText;
+							//if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillgroup"))
+							//	frmPickSkill.OnlySkillGroup = nodSkill.SelectSingleNode("selectskill").Attributes["skillgroup"].InnerText;
+							//else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillcategory"))
+							//	frmPickSkill.OnlyCategory = nodSkill.SelectSingleNode("selectskill").Attributes["skillcategory"].InnerText;
+							//else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("excludecategory"))
+							//	frmPickSkill.ExcludeCategory = nodSkill.SelectSingleNode("selectskill").Attributes["excludecategory"].InnerText;
+							//else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("limittoskill"))
+							//	frmPickSkill.LimitToSkill = nodSkill.SelectSingleNode("selectskill").Attributes["limittoskill"].InnerText;
 
-							if (ForcedValue.StartsWith("Adept:") || ForcedValue.StartsWith("Magician:"))
+                            string limitCategory = "";
+                            string limitValue = "";
+                            if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillgroup"))
+                            {
+                                limitCategory = "OnlySkillGroup";
+                                limitValue = nodSkill.SelectSingleNode("selectskill").Attributes["skillgroup"].InnerText;
+                            }
+                            else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("skillcategory"))
+                            {
+                                limitCategory = "OnlyCategory";
+                                limitValue = nodSkill.SelectSingleNode("selectskill").Attributes["skillcategory"].InnerText;
+                            }
+                            else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("excludecategory"))
+                            {
+                                limitCategory = "ExcludeCategory";
+                                limitValue = nodSkill.SelectSingleNode("selectskill").Attributes["excludecategory"].InnerText;
+                            }
+                            else if (nodSkill.SelectSingleNode("selectskill").OuterXml.Contains("limittoskill"))
+                            {
+                                limitCategory = "LimitToSkill";
+                                limitValue = nodSkill.SelectSingleNode("selectskill").Attributes["limittoskill"].InnerText;
+                            }
+
+                            if (ForcedValue.StartsWith("Adept:") || ForcedValue.StartsWith("Magician:"))
 								ForcedValue = "";
 
-							//Log.Info("_strForcedValue = " + ForcedValue);
-							//Log.Info("_strLimitSelection = " + LimitSelection);
+                            //Log.Info("_strForcedValue = " + ForcedValue);
+                            //Log.Info("_strLimitSelection = " + LimitSelection);
 
-							if (ForcedValue != "")
-							{
-								frmPickSkill.OnlySkill = ForcedValue;
-								frmPickSkill.Opacity = 0;
-							}
-							frmPickSkill.ShowDialog();
+                            //if (ForcedValue != "")
+                            //{
+                            //	frmPickSkill.OnlySkill = ForcedValue;
+                            //	frmPickSkill.Opacity = 0;
+                            //}
+                            //frmPickSkill.ShowDialog();
+                            string selectedSkill = messageDisplay.PickSkill(_objCharacter, description, limitCategory, limitValue, ForcedValue);
 
 							// Make sure the dialogue window was not canceled.
-							if (frmPickSkill.DialogResult == DialogResult.Cancel)
+							//if (frmPickSkill.DialogResult == DialogResult.Cancel)
+                            if (string.IsNullOrEmpty(selectedSkill))
 							{
 								throw new AbortedException();
 							}
 
-							SelectedValue = frmPickSkill.SelectedSkill;
+							SelectedValue = selectedSkill;
 							ForcedValue = SelectedValue;
 							strSelection = SelectedValue;
 
@@ -2919,28 +2988,30 @@ namespace Chummer.Classes
 						if (objBonus["selecttext"] != null)
 						{
 							//Log.Info("selecttext = " + objBonus["selecttext"].OuterXml.ToString());
-							frmSelectText frmPickText = new frmSelectText();
-							frmPickText.Description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
+							//frmSelectText frmPickText = new frmSelectText();
+							string description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
 								.Replace("{0}", _strFriendlyName);
 
-							//Log.Info("_strForcedValue = " + ForcedValue);
-							//Log.Info("_strLimitSelection = " + LimitSelection);
+                            //Log.Info("_strForcedValue = " + ForcedValue);
+                            //Log.Info("_strLimitSelection = " + LimitSelection);
 
-							if (LimitSelection != "")
-							{
-								frmPickText.SelectedValue = LimitSelection;
-								frmPickText.Opacity = 0;
-							}
+                            //if (LimitSelection != "")
+                            //{
+                            //	frmPickText.SelectedValue = LimitSelection;
+                            //	frmPickText.Opacity = 0;
+                            //}
 
-							frmPickText.ShowDialog();
+                            //frmPickText.ShowDialog
+                            string selectedText = messageDisplay.PickText(_objCharacter, description, LimitSelection);
 
 							// Make sure the dialogue window was not canceled.
-							if (frmPickText.DialogResult == DialogResult.Cancel)
+							//if (frmPickText.DialogResult == DialogResult.Cancel)
+                            if (string.IsNullOrEmpty(selectedText))
 							{
 								throw new AbortedException();
 							}
 
-							strSelection = frmPickText.SelectedValue;
+							strSelection = selectedText;
 							LimitSelection = strSelection;
 
 							//Log.Info("_strLimitSelection = " + LimitSelection);
@@ -2961,58 +3032,61 @@ namespace Chummer.Classes
 							if (ForcedValue.StartsWith("Adept"))
 								ForcedValue = "";
 
-							// Display the Select CharacterAttribute window and record which CharacterAttribute was selected.
-							frmSelectAttribute frmPickAttribute = new frmSelectAttribute();
+                            // Display the Select CharacterAttribute window and record which CharacterAttribute was selected.
+                            //frmSelectAttribute frmPickAttribute = new frmSelectAttribute();
+                            string description = "";
 							if (_strFriendlyName != "")
-								frmPickAttribute.Description =
+								description =
 									LanguageManager.Instance.GetString("String_Improvement_SelectAttributeNamed").Replace("{0}", _strFriendlyName);
 							else
-								frmPickAttribute.Description = LanguageManager.Instance.GetString("String_Improvement_SelectAttribute");
+								description = LanguageManager.Instance.GetString("String_Improvement_SelectAttribute");
 
-							// Add MAG and/or RES to the list of Attributes if they are enabled on the form.
-							if (_objCharacter.MAGEnabled)
-								frmPickAttribute.AddMAG();
-							if (_objCharacter.RESEnabled)
-								frmPickAttribute.AddRES();
+                            // Add MAG and/or RES to the list of Attributes if they are enabled on the form.
+                            //if (_objCharacter.MAGEnabled)
+                            //	frmPickAttribute.AddMAG();
+                            //if (_objCharacter.RESEnabled)
+                            //	frmPickAttribute.AddRES();
 
-							if (nodSkill["selectattribute"].InnerXml.Contains("<attribute>"))
+                            List<string> limitList = new List<string>();
+                            if (nodSkill["selectattribute"].InnerXml.Contains("<attribute>"))
 							{
-								List<string> strValue = new List<string>();
 								foreach (IXmlNode objIXmlAttribute in nodSkill["selectattribute"].SelectNodes("attribute"))
-									strValue.Add(objIXmlAttribute.InnerText);
-								frmPickAttribute.LimitToList(strValue);
+                                    limitList.Add(objIXmlAttribute.InnerText);
+								//frmPickAttribute.LimitToList(strValue);
 							}
 
-							if (nodSkill["selectattribute"].InnerXml.Contains("<excludeattribute>"))
+                            List<string> removeList = new List<string>();
+                            if (nodSkill["selectattribute"].InnerXml.Contains("<excludeattribute>"))
 							{
-								List<string> strValue = new List<string>();
 								foreach (IXmlNode objIXmlAttribute in nodSkill["selectattribute"].SelectNodes("excludeattribute"))
-									strValue.Add(objIXmlAttribute.InnerText);
-								frmPickAttribute.RemoveFromList(strValue);
+                                    removeList.Add(objIXmlAttribute.InnerText);
+								//frmPickAttribute.RemoveFromList(strValue);
 							}
 
 							// Check to see if there is only one possible selection because of _strLimitSelection.
 							if (ForcedValue != "")
 								LimitSelection = ForcedValue;
 
-							//Log.Info("_strForcedValue = " + ForcedValue);
-							//Log.Info("_strLimitSelection = " + LimitSelection);
+                            //Log.Info("_strForcedValue = " + ForcedValue);
+                            //Log.Info("_strLimitSelection = " + LimitSelection);
 
-							if (LimitSelection != "")
-							{
-								frmPickAttribute.SingleAttribute(LimitSelection);
-								frmPickAttribute.Opacity = 0;
-							}
+                            //if (LimitSelection != "")
+                            //{
+                            //	frmPickAttribute.SingleAttribute(LimitSelection);
+                            //	frmPickAttribute.Opacity = 0;
+                            //}
 
-							frmPickAttribute.ShowDialog();
+                            //frmPickAttribute.ShowDialog();
+                            string selectedAtt = messageDisplay.PickAttribute(_objCharacter, description, _objCharacter.MAGEnabled, _objCharacter.RESEnabled, limitList, removeList, LimitSelection);
 
 							// Make sure the dialogue window was not canceled.
-							if (frmPickAttribute.DialogResult == DialogResult.Cancel)
+							//if (frmPickAttribute.DialogResult == DialogResult.Cancel)
+                            if (string.IsNullOrEmpty(selectedAtt))
 							{
 								throw new AbortedException();
 							}
 
-							SelectedValue = frmPickAttribute.SelectedAttribute;
+							SelectedValue = selectedAtt;
 							if (_blnConcatSelectedValue)
 								SourceName += " (" + SelectedValue + ")";
 							strSelection = SelectedValue;
@@ -3228,47 +3302,78 @@ namespace Chummer.Classes
 			//Log.Info("hardwire = " + bonusNode.OuterXml.ToString());
 			//Log.Info("Calling CreateImprovement");
 			Cyberware objCyberware = new Cyberware(_objCharacter);
-			CommonFunctions _objFunctions = new CommonFunctions();
+			CommonFunctions _objFunctions = new CommonFunctions(displayFactory);
 			objCyberware = _objFunctions.FindCyberware(SourceName, _objCharacter.Cyberware);
 			if (objCyberware == null)
 			{
-				//Log.Info("_strSelectedValue = " + SelectedValue);
-				//Log.Info("_strForcedValue = " + ForcedValue);
+                //Log.Info("_strSelectedValue = " + SelectedValue);
+                //Log.Info("_strForcedValue = " + ForcedValue);
 
-				// Display the Select Skill window and record which Skill was selected.
-				frmSelectSkill frmPickSkill = new frmSelectSkill(_objCharacter);
+                // Display the Select Skill window and record which Skill was selected.
+                //frmSelectSkill frmPickSkill = new frmSelectSkill(_objCharacter);
+                string description = "";
 				if (_strFriendlyName != "")
-					frmPickSkill.Description = LanguageManager.Instance.GetString("String_Improvement_SelectSkillNamed")
+					description = LanguageManager.Instance.GetString("String_Improvement_SelectSkillNamed")
 						.Replace("{0}", _strFriendlyName);
 				else
-					frmPickSkill.Description = LanguageManager.Instance.GetString("String_Improvement_SelectSkill");
+					description = LanguageManager.Instance.GetString("String_Improvement_SelectSkill");
 
 				//Log.Info("selectskill = " + bonusNode.OuterXml.ToString());
-				if (bonusNode.OuterXml.Contains("skillgroup"))
-					frmPickSkill.OnlySkillGroup = bonusNode.Attributes["skillgroup"].InnerText;
-				else if (bonusNode.OuterXml.Contains("skillcategory"))
-					frmPickSkill.OnlyCategory = bonusNode.Attributes["skillcategory"].InnerText;
-				else if (bonusNode.OuterXml.Contains("excludecategory"))
-					frmPickSkill.ExcludeCategory = bonusNode.Attributes["excludecategory"].InnerText;
-				else if (bonusNode.OuterXml.Contains("limittoskill"))
-					frmPickSkill.LimitToSkill = bonusNode.Attributes["limittoskill"].InnerText;
-				else if (bonusNode.OuterXml.Contains("limittoattribute"))
-					frmPickSkill.LinkedAttribute = bonusNode.Attributes["limittoattribute"].InnerText;
+				//if (bonusNode.OuterXml.Contains("skillgroup"))
+				//	frmPickSkill.OnlySkillGroup = bonusNode.Attributes["skillgroup"].InnerText;
+				//else if (bonusNode.OuterXml.Contains("skillcategory"))
+				//	frmPickSkill.OnlyCategory = bonusNode.Attributes["skillcategory"].InnerText;
+				//else if (bonusNode.OuterXml.Contains("excludecategory"))
+				//	frmPickSkill.ExcludeCategory = bonusNode.Attributes["excludecategory"].InnerText;
+				//else if (bonusNode.OuterXml.Contains("limittoskill"))
+				//	frmPickSkill.LimitToSkill = bonusNode.Attributes["limittoskill"].InnerText;
+				//else if (bonusNode.OuterXml.Contains("limittoattribute"))
+				//	frmPickSkill.LinkedAttribute = bonusNode.Attributes["limittoattribute"].InnerText;
 
-				if (ForcedValue != "")
-				{
-					frmPickSkill.OnlySkill = ForcedValue;
-					frmPickSkill.Opacity = 0;
-				}
-				frmPickSkill.ShowDialog();
+                string limitCategory = "";
+                string limitValue = "";
+                if (bonusNode.OuterXml.Contains("skillgroup"))
+                {
+                    limitCategory = "OnlySkillGroup";
+                    limitValue = bonusNode.Attributes["skillgroup"].InnerText;
+                }
+                else if (bonusNode.OuterXml.Contains("skillcategory"))
+                {
+                    limitCategory = "OnlyCategory";
+                    limitValue = bonusNode.Attributes["skillcategory"].InnerText;
+                }
+                else if (bonusNode.OuterXml.Contains("excludecategory"))
+                {
+                    limitCategory = "ExcludeCategory";
+                    limitValue = bonusNode.Attributes["excludecategory"].InnerText;
+                }
+                else if (bonusNode.OuterXml.Contains("limittoskill"))
+                {
+                    limitCategory = "LimitToSkill";
+                    limitValue = bonusNode.Attributes["limittoskill"].InnerText;
+                }
+                else if (bonusNode.OuterXml.Contains("limittoattribute"))
+                {
+                    limitCategory = "LinkedAttribute";
+                    limitValue = bonusNode.Attributes["limittoattribute"].InnerText;
+                }
+
+                //            if (ForcedValue != "")
+                //{
+                //	frmPickSkill.OnlySkill = ForcedValue;
+                //	frmPickSkill.Opacity = 0;
+                //}
+                //frmPickSkill.ShowDialog();
+                string selected = messageDisplay.PickSkill(_objCharacter, description, limitCategory, limitValue, ForcedValue);
 
 				// Make sure the dialogue window was not canceled.
-				if (frmPickSkill.DialogResult == DialogResult.Cancel)
+				//if (frmPickSkill.DialogResult == DialogResult.Cancel)
+                if (string.IsNullOrEmpty(selected))
 				{
 					throw new AbortedException();
 				}
 
-				SelectedValue = frmPickSkill.SelectedSkill;
+				SelectedValue = selected;
 			}
 			else
 			{
@@ -3500,7 +3605,7 @@ namespace Chummer.Classes
 		{
 			//Log.Info("selectsprite");
 			//Log.Info("selectsprite = " + bonusNode.OuterXml.ToString());
-			IXmlDocument objIXmlDocument = XmlManager.Instance.Load("critters.IXml");
+			IXmlDocument objIXmlDocument = XmlManager.Instance.Load("critters.Xml");
 			IXmlNodeList objIXmlNodeList =
 				objIXmlDocument.SelectNodes("/chummer/metatypes/metatype[contains(category, \"Sprites\")]");
 			List<ListItem> lstCritters = new List<ListItem>();
@@ -3515,19 +3620,21 @@ namespace Chummer.Classes
 				lstCritters.Add(objItem);
 			}
 
-			frmSelectItem frmPickItem = new frmSelectItem();
-			frmPickItem.GeneralItems = lstCritters;
-			frmPickItem.ShowDialog();
+            //frmSelectItem frmPickItem = new frmSelectItem();
+            //frmPickItem.GeneralItems = lstCritters;
+            //frmPickItem.ShowDialog();
+            string selected = messageDisplay.PickItem(_objCharacter, "", "", lstCritters);
 
-			if (frmPickItem.DialogResult == DialogResult.Cancel)
+			//if (frmPickItem.DialogResult == DialogResult.Cancel)
+            if (string.IsNullOrEmpty(selected))
 			{
 				throw new AbortedException();
 			}
 
-			SelectedValue = frmPickItem.SelectedItem;
+			SelectedValue = selected;
 
 			//Log.Info("Calling CreateImprovement");
-			CreateImprovement(frmPickItem.SelectedItem, _objImprovementSource, SourceName,
+			CreateImprovement(selected, _objImprovementSource, SourceName,
 				Improvement.ImprovementType.AddSprite,
 				"");
 		}
@@ -3553,25 +3660,25 @@ namespace Chummer.Classes
 				LimitSelection = ForcedValue;
 
 			// Display the Select Item window and record the value that was entered.
-			IXmlDocument objIXmlDocument = IXmlManager.Instance.Load("armor.IXml");
-			IXmlNodeList objIXmlNodeList;
+			IXmlDocument objXmlDocument = XmlManager.Instance.Load("armor.Xml");
+			IXmlNodeList objXmlNodeList;
 			
 			if (!string.IsNullOrEmpty(bonusNode.InnerText))
 			{
-				objIXmlNodeList = objIXmlDocument.SelectNodes("/chummer/armors/armor[name starts-with " + bonusNode.InnerText + "(" + _objCharacter.Options.BookXPath() +
+				objXmlNodeList = objXmlDocument.SelectNodes("/chummer/armors/armor[name starts-with " + bonusNode.InnerText + "(" + _objCharacter.Options.BookXPath() +
 															") and category = 'High-Fashion Armor Clothing' and mods[name = 'Custom Fit']]");
 			}
 			else
 			{
-				objIXmlNodeList =
-					objIXmlDocument.SelectNodes("/chummer/armors/armor[(" + _objCharacter.Options.BookXPath() +
+				objXmlNodeList =
+					objXmlDocument.SelectNodes("/chummer/armors/armor[(" + _objCharacter.Options.BookXPath() +
 											   ") and category = 'High-Fashion Armor Clothing' and mods[name = 'Custom Fit']]");
 			}
 
 			//.SelectNodes("/chummer/skills/skill[not(exotic) and (" + _objCharacter.Options.BookXPath() + ")" + SkillFilter(filter) + "]");
 
 			List<ListItem> lstArmors = new List<ListItem>();
-			foreach (IXmlNode objNode in objIXmlNodeList)
+			foreach (IXmlNode objNode in objXmlNodeList)
 			{
 				ListItem objItem = new ListItem();
 				objItem.Value = objNode["name"].InnerText;
@@ -3582,33 +3689,35 @@ namespace Chummer.Classes
 			if (lstArmors.Count > 0)
 			{
 
-				frmSelectItem frmPickItem = new frmSelectItem();
-				frmPickItem.Description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
+				//frmSelectItem frmPickItem = new frmSelectItem();
+				string description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
 					.Replace("{0}", _strFriendlyName);
-				frmPickItem.GeneralItems = lstArmors;
+                //frmPickItem.GeneralItems = lstArmors;
 
-				//Log.Info("_strLimitSelection = " + LimitSelection);
-				//Log.Info("_strForcedValue = " + ForcedValue);
+                //Log.Info("_strLimitSelection = " + LimitSelection);
+                //Log.Info("_strForcedValue = " + ForcedValue);
 
-				if (LimitSelection != "")
-				{
-					frmPickItem.ForceItem = LimitSelection;
-					frmPickItem.Opacity = 0;
-				}
+                //if (LimitSelection != "")
+                //{
+                //	frmPickItem.ForceItem = LimitSelection;
+                //	frmPickItem.Opacity = 0;
+                //}
 
-				frmPickItem.ShowDialog();
+                //frmPickItem.ShowDialog();
+                string selected = messageDisplay.PickItem(_objCharacter, description, LimitSelection, lstArmors);
 
 				// Make sure the dialogue window was not canceled.
-				if (frmPickItem.DialogResult == DialogResult.Cancel)
+				//if (frmPickItem.DialogResult == DialogResult.Cancel)
+                if (string.IsNullOrEmpty(selected))
 				{
 					throw new AbortedException();
 				}
 
-				SelectedValue = frmPickItem.SelectedItem;
+				SelectedValue = selected;
 				if (_blnConcatSelectedValue)
 					SourceName += " (" + SelectedValue + ")";
 
-				strSelectedValue = frmPickItem.SelectedItem;
+				strSelectedValue = selected;
 				//Log.Info("_strSelectedValue = " + SelectedValue);
 				//Log.Info("SelectedValue = " + strSelectedValue);
 			}
@@ -3628,32 +3737,34 @@ namespace Chummer.Classes
 			{
 				// If the character is null (this is a Vehicle), the user must enter their own string.
 				// Display the Select Item window and record the value that was entered.
-				frmSelectText frmPickText = new frmSelectText();
-				frmPickText.Description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
+				//frmSelectText frmPickText = new frmSelectText();
+				string description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
 					.Replace("{0}", _strFriendlyName);
 
-				//Log.Info("_strLimitSelection = " + LimitSelection);
-				//Log.Info("_strForcedValue = " + ForcedValue);
+                //Log.Info("_strLimitSelection = " + LimitSelection);
+                //Log.Info("_strForcedValue = " + ForcedValue);
 
-				if (LimitSelection != "")
-				{
-					frmPickText.SelectedValue = LimitSelection;
-					frmPickText.Opacity = 0;
-				}
+                //if (LimitSelection != "")
+                //{
+                //	frmPickText.SelectedValue = LimitSelection;
+                //	frmPickText.Opacity = 0;
+                //}
 
-				frmPickText.ShowDialog();
+                //frmPickText.ShowDialog();
+                string selected = messageDisplay.PickText(_objCharacter, description, LimitSelection);
 
 				// Make sure the dialogue window was not canceled.
-				if (frmPickText.DialogResult == DialogResult.Cancel)
+				//if (frmPickText.DialogResult == DialogResult.Cancel)
+                if (string.IsNullOrEmpty(selected))
 				{
 					throw new AbortedException();
 				}
 
-				SelectedValue = frmPickText.SelectedValue;
+				SelectedValue = selected;
 				if (_blnConcatSelectedValue)
 					SourceName += " (" + SelectedValue + ")";
 
-				strSelectedValue = frmPickText.SelectedValue;
+				strSelectedValue = selected;
 				//Log.Info("_strSelectedValue = " + SelectedValue);
 				//Log.Info("SelectedValue = " + strSelectedValue);
 			}
@@ -3674,33 +3785,36 @@ namespace Chummer.Classes
 					}
 				}
 
-				frmSelectItem frmPickItem = new frmSelectItem();
-				frmPickItem.Description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
+				//frmSelectItem frmPickItem = new frmSelectItem();
+				string description = LanguageManager.Instance.GetString("String_Improvement_SelectText")
 					.Replace("{0}", _strFriendlyName);
-				frmPickItem.GeneralItems = lstWeapons;
+                //frmPickItem.GeneralItems = lstWeapons;
 
-				//Log.Info("_strLimitSelection = " + LimitSelection);
-				//Log.Info("_strForcedValue = " + ForcedValue);
+                //Log.Info("_strLimitSelection = " + LimitSelection);
+                //Log.Info("_strForcedValue = " + ForcedValue);
 
-				if (LimitSelection != "")
-				{
-					frmPickItem.ForceItem = LimitSelection;
-					frmPickItem.Opacity = 0;
-				}
+                //if (LimitSelection != "")
+                //{
+                //	frmPickItem.ForceItem = LimitSelection;
+                //	frmPickItem.Opacity = 0;
+                //}
 
-				frmPickItem.ShowDialog();
+                //frmPickItem.ShowDialog();
+
+                string selected = messageDisplay.PickItem(_objCharacter, description, LimitSelection, lstWeapons);
 
 				// Make sure the dialogue window was not canceled.
-				if (frmPickItem.DialogResult == DialogResult.Cancel)
+				//if (frmPickItem.DialogResult == DialogResult.Cancel)
+                if (string.IsNullOrEmpty(selected))
 				{
 					throw new AbortedException();
 				}
 
-				SelectedValue = frmPickItem.SelectedItem;
+				SelectedValue = selected;
 				if (_blnConcatSelectedValue)
 					SourceName += " (" + SelectedValue + ")";
 
-				strSelectedValue = frmPickItem.SelectedItem;
+				strSelectedValue = selected;
 				//Log.Info("_strSelectedValue = " + SelectedValue);
 				//Log.Info("SelectedValue = " + strSelectedValue);
 			}
@@ -3716,11 +3830,11 @@ namespace Chummer.Classes
 			IXmlNodeList objIXmlPowerList = bonusNode.SelectNodes("optionalpower");
 			//Log.Info("selectoptionalpower");
 			// Display the Select Attribute window and record which Skill was selected.
-			frmSelectOptionalPower frmPickPower = new frmSelectOptionalPower();
-			frmPickPower.Description = LanguageManager.Instance.GetString("String_Improvement_SelectOptionalPower");
+			//frmSelectOptionalPower frmPickPower = new frmSelectOptionalPower();
+			string description = LanguageManager.Instance.GetString("String_Improvement_SelectOptionalPower");
 			string strForcedValue = "";
 
-			List<KeyValuePair<string, string>> lstValue = new List<KeyValuePair<string, string>>();
+			List<KeyValuePair<string, string>> limitList = new List<KeyValuePair<string, string>>();
 			foreach (IXmlNode objIXmlOptionalPower in objIXmlPowerList)
 			{
 				string strQuality = objIXmlOptionalPower.InnerText;
@@ -3728,61 +3842,64 @@ namespace Chummer.Classes
 				{
 					strForcedValue = objIXmlOptionalPower.Attributes["select"].InnerText;
 				}
-				lstValue.Add(new KeyValuePair<string, string>(strQuality, strForcedValue));
+				limitList.Add(new KeyValuePair<string, string>(strQuality, strForcedValue));
 			}
-			frmPickPower.LimitToList(lstValue);
+			//frmPickPower.LimitToList(limitList);
 
 
 			// Check to see if there is only one possible selection because of _strLimitSelection.
 			if (ForcedValue != "")
 				LimitSelection = ForcedValue;
 
-			//Log.Info("_strForcedValue = " + ForcedValue);
-			//Log.Info("_strLimitSelection = " + LimitSelection);
+            //Log.Info("_strForcedValue = " + ForcedValue);
+            //Log.Info("_strLimitSelection = " + LimitSelection);
 
-			if (LimitSelection != "")
-			{
-				frmPickPower.SinglePower(LimitSelection);
-				frmPickPower.Opacity = 0;
-			}
+            //if (LimitSelection != "")
+            //{
+            //	frmPickPower.SinglePower(LimitSelection);
+            //	frmPickPower.Opacity = 0;
+            //}
 
-			frmPickPower.ShowDialog();
+            //frmPickPower.ShowDialog();
+
+            string selected = messageDisplay.PickOptionalPower(_objCharacter, description, limitList, LimitSelection);
 
 			// Make sure the dialogue window was not canceled.
-			if (frmPickPower.DialogResult == DialogResult.Cancel)
+			//if (frmPickPower.DialogResult == DialogResult.Cancel)
+            if (string.IsNullOrEmpty(selected))
 			{
 				throw new AbortedException();
 			}
 
-			strForcedValue = frmPickPower.SelectedPowerExtra;
+			strForcedValue = selected;
 			// Record the improvement.
-			IXmlDocument objIXmlDocument = IXmlManager.Instance.Load("critterpowers.IXml");
-			IXmlNode objIXmlPowerNode =
-				objIXmlDocument.SelectSingleNode("/chummer/powers/power[name = \"" + frmPickPower.SelectedPower + "\"]");
-			TreeNode objPowerNode = new TreeNode();
+			IXmlDocument objXmlDocument = XmlManager.Instance.Load("critterpowers.Xml");
+			IXmlNode objXmlPowerNode =
+				objXmlDocument.SelectSingleNode("/chummer/powers/power[name = \"" + selected + "\"]");
+            ITreeNode objPowerNode = displayFactory.CreateTreeNode();
 			CritterPower objPower = new CritterPower(_objCharacter);
 
-			objPower.Create(objIXmlPowerNode, _objCharacter, objPowerNode, 0, strForcedValue);
+			objPower.Create(objXmlPowerNode, _objCharacter, objPowerNode, 0, strForcedValue);
 			_objCharacter.CritterPowers.Add(objPower);
 		}
 
 		public void critterpowers(IXmlNode bonusNode)
 		{
-			IXmlDocument objIXmlDocument = IXmlManager.Instance.Load("critterpowers.IXml");
-			foreach (IXmlNode objIXmlPower in bonusNode.SelectNodes("power"))
+			IXmlDocument objXmlDocument = XmlManager.Instance.Load("critterpowers.Xml");
+			foreach (IXmlNode objXmlPower in bonusNode.SelectNodes("power"))
 			{
-				IXmlNode objIXmlCritterPower = objIXmlDocument.SelectSingleNode("/chummer/powers/power[name = \"" + objIXmlPower.InnerText + "\"]");
-				TreeNode objPowerNode = new TreeNode();
+				IXmlNode objXmlCritterPower = objXmlDocument.SelectSingleNode("/chummer/powers/power[name = \"" + objXmlPower.InnerText + "\"]");
+                ITreeNode objPowerNode = displayFactory.CreateTreeNode();
 				CritterPower objPower = new CritterPower(_objCharacter);
 				string strForcedValue = "";
 				int intRating = 0;
-				if (objIXmlPower.Attributes != null && objIXmlPower.Attributes.Count > 0)
+				if (objXmlPower.Attributes != null && objXmlPower.Attributes.Count() > 0)
 				{
-					intRating = Convert.ToInt32(objIXmlPower.Attributes["rating"]?.InnerText);
-					strForcedValue = objIXmlPower.Attributes["select"]?.InnerText;
+					intRating = Convert.ToInt32(objXmlPower.Attributes["rating"]?.InnerText);
+					strForcedValue = objXmlPower.Attributes["select"]?.InnerText;
 				}
 
-				objPower.Create(objIXmlCritterPower, _objCharacter, objPowerNode, intRating, strForcedValue);
+				objPower.Create(objXmlCritterPower, _objCharacter, objPowerNode, intRating, strForcedValue);
 				_objCharacter.CritterPowers.Add(objPower);
 			}
 		}
@@ -3796,26 +3913,29 @@ namespace Chummer.Classes
 		public void dealerconnection(IXmlNode bonusNode)
 		{
 			//Log.Info("dealerconnection");
-			frmSelectItem frmPickItem = new frmSelectItem();
+			//frmSelectItem frmPickItem = new frmSelectItem();
 			List<ListItem> lstItems = new List<ListItem>();
-			IXmlNodeList objIXmlList = bonusNode.SelectNodes("category");
-			foreach (IXmlNode objNode in objIXmlList)
+			IXmlNodeList objXmlList = bonusNode.SelectNodes("category");
+			foreach (IXmlNode objNode in objXmlList)
 			{
 				ListItem objItem = new ListItem();
 				objItem.Value = objNode.InnerText;
 				objItem.Name = objNode.InnerText;
 				lstItems.Add(objItem);
 			}
-			frmPickItem.GeneralItems = lstItems;
-			frmPickItem.AllowAutoSelect = false;
-			frmPickItem.ShowDialog();
+            //frmPickItem.GeneralItems = lstItems;
+            //frmPickItem.AllowAutoSelect = false;
+            //frmPickItem.ShowDialog();
+            string selected = messageDisplay.PickItem(_objCharacter, "", "", lstItems);
+
 			// Make sure the dialogue window was not canceled.
-			if (frmPickItem.DialogResult == DialogResult.Cancel)
+			//if (frmPickItem.DialogResult == DialogResult.Cancel)
+            if (string.IsNullOrEmpty(selected))
 			{
 				throw new AbortedException();
 			}
 
-			SelectedValue = frmPickItem.SelectedItem;
+			SelectedValue = selected;
 			if (_blnConcatSelectedValue)
 				SourceName += " (" + SelectedValue + ")";
 
@@ -3824,7 +3944,7 @@ namespace Chummer.Classes
 
 			// Create the Improvement.
 			//Log.Info("Calling CreateImprovement");
-			CreateImprovement(frmPickItem.SelectedItem, _objImprovementSource, SourceName,
+			CreateImprovement(selected, _objImprovementSource, SourceName,
 				Improvement.ImprovementType.DealerConnection, _strUnique);
 		}
 
@@ -3843,23 +3963,27 @@ namespace Chummer.Classes
 			}
 			else
 			{
-				frmSelectItem frmSelect = new frmSelectItem
-				{
-					AllowAutoSelect = true,
-					GeneralItems = options.Select(x => new ListItem(x, x)).ToList()
-				};
+                //frmSelectItem frmSelect = new frmSelectItem
+                //{
+                //	AllowAutoSelect = true,
+                //	GeneralItems = options.Select(x => new ListItem(x, x)).ToList()
+                //};
 
+                string force = "";
 				if (_objCharacter.Pushtext.Count > 0)
 				{
-					frmSelect.ForceItem = _objCharacter.Pushtext.Pop();
+					force = _objCharacter.Pushtext.Pop();
 				}
 
-				if (frmSelect.ShowDialog() == DialogResult.Cancel)
+                string selected = messageDisplay.PickItem(_objCharacter, "", force, options.Select(x => new ListItem(x, x)).ToList());
+
+				//if (frmSelect.ShowDialog() == DialogResult.Cancel)
+                if (string.IsNullOrEmpty(selected))
 				{
 					throw new AbortedException();
 				}
 
-				final = frmSelect.SelectedItem;
+				final = selected;
 			}
 
 			SkillsSection.FilterOptions skills;
@@ -3878,25 +4002,25 @@ namespace Chummer.Classes
 
 		public void addqualities(IXmlNode bonusNode)
 		{
-			IXmlDocument objIXmlDocument = IXmlManager.Instance.Load("qualities.IXml");
-			foreach (IXmlNode objIXmlAddQuality in bonusNode.SelectNodes("addquality"))
+			IXmlDocument objXmlDocument = XmlManager.Instance.Load("qualities.Xml");
+			foreach (IXmlNode objXmlAddQuality in bonusNode.SelectNodes("addquality"))
 			{
-				IXmlNode objIXmlSelectedQuality = objIXmlDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objIXmlAddQuality.InnerText + "\"]");
+				IXmlNode objXmlSelectedQuality = objXmlDocument.SelectSingleNode("/chummer/qualities/quality[name = \"" + objXmlAddQuality.InnerText + "\"]");
 				string strForceValue = "";
-				if (objIXmlAddQuality.Attributes["select"] != null)
-					strForceValue = objIXmlAddQuality.Attributes["select"].InnerText;
-				bool blnAddQuality = _objCharacter.Qualities.All(objCharacterQuality => objCharacterQuality.Name != objIXmlAddQuality.InnerText || objCharacterQuality.Extra != strForceValue);
+				if (objXmlAddQuality.Attributes["select"] != null)
+					strForceValue = objXmlAddQuality.Attributes["select"].InnerText;
+				bool blnAddQuality = _objCharacter.Qualities.All(objCharacterQuality => objCharacterQuality.Name != objXmlAddQuality.InnerText || objCharacterQuality.Extra != strForceValue);
 
 				// Make sure the character does not yet have this Quality.
 
 				if (blnAddQuality)
 				{
-					TreeNode objAddQualityNode = new TreeNode();
+                    ITreeNode objAddQualityNode = displayFactory.CreateTreeNode();
 					Quality objAddQuality = new Quality(_objCharacter);
-					objAddQuality.Create(objIXmlSelectedQuality, _objCharacter, QualitySource.Selected, objAddQualityNode, null, null, strForceValue);
+					objAddQuality.Create(objXmlSelectedQuality, _objCharacter, QualitySource.Selected, objAddQualityNode, null, null, strForceValue);
 
-					bool blnFree = (objIXmlAddQuality.Attributes["contributetobp"] == null ||
-					                (objIXmlAddQuality.Attributes["contributetobp"]?.InnerText.ToLower() != "true"));
+					bool blnFree = (objXmlAddQuality.Attributes["contributetobp"] == null ||
+					                (objXmlAddQuality.Attributes["contributetobp"]?.InnerText.ToLower() != "true"));
 					if (blnFree)
 					{
 						objAddQuality.BP = 0;
