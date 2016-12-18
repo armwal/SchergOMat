@@ -508,35 +508,25 @@ namespace Chummer
 			}
 		}
 
-		/// <summary>
-		/// Main application form.
-		/// </summary>
-		//public frmMain MainForm
-		//{
-		//	get
-		//	{
-		//		return _frmMainForm;
-		//	}
-		//	set
-		//	{
-		//		_frmMainForm = value;
-		//	}
-		//}
+        /// <summary>
+        /// Main application form.
+        /// </summary>
+        //public frmMain MainForm
+        //{
+        //	get
+        //	{
+        //		return _frmMainForm;
+        //	}
+        //	set
+        //	{
+        //		_frmMainForm = value;
+        //	}
+        //}
 
-		/// <summary>
-		/// Language.
-		/// </summary>
-		public string Language
-		{
-			get
-			{
-				return _strLanguage;
-			}
-			set
-			{
-				_strLanguage = value;
-			}
-		}
+        /// <summary>
+        /// Language.
+        /// </summary>
+        public const string Language = "en-us";
 
 		/// <summary>
 		/// Whether or not the application should start in fullscreen mode.

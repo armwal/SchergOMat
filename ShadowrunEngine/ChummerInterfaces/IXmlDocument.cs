@@ -42,6 +42,7 @@ namespace Chummer
     public interface IXmlNode : IEnumerable<IXmlNode>
     {
         string Name { get; }
+        string LocalName { get; }
         string Value { get; }
         IXmlNode this[string key] { get; set; }
         IXmlNode Attributes { get; }
@@ -53,10 +54,17 @@ namespace Chummer
 
         IXmlNode SelectSingleNode(string path);
         IXmlNodeList SelectNodes(string path);
+
+        void AppendChild(IXmlNode node);
         
         bool TryGetField<T>(string name, out T value);
         bool TryGetField<T>(string name, out T value, T onError);
         bool TryGetField<T>(string name, TryParseFunction<T> parser, out T read);
         bool TryCheckValue(string name, string value);
+
+        void TryPreserveField(string name, ref bool value);
+
+        IXmlNode Clone();
+        IXPathNavigator CreateNavigator();
     }
 }

@@ -9,6 +9,7 @@ namespace Chummer
     public interface IMessageDisplay
     {
         void ShowError(string message, string title);
+        void ShowInfo(string message, string title);
         bool AskQuestion(string message, string title);
         string AskForTextInput(string description, string limitSelection = "");
         string PickItem(Character character, string description, string forced = "", List<ListItem> generalItems = null, List<ListItem> dropDownItems = null);
@@ -21,6 +22,7 @@ namespace Chummer
         string PickSide(Character character, string description, string forceValue);
         string PickText(Character character, string description, string selectedValue);
         string PickPower(Character character, string description, string limitToPowers);
-        string PickOptionalPower(Character character, string description, List<KeyValuePair<string, string>> limitList, string singlePower)
+        string PickOptionalPower(Character character, string description, List<KeyValuePair<string, string>> limitList, string singlePower);
+        int PickNumber(string description, int minimum, int maximum);
     }
 }

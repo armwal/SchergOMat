@@ -23,11 +23,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
-using System.Windows.Forms;
-using Microsoft.Win32;
-using System.Drawing;
  using System.Linq;
- using System.Web;
  using Chummer.Backend.Equipment;
 
 namespace Chummer

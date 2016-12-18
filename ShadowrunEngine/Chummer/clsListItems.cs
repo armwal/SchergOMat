@@ -18,7 +18,7 @@
  */
 ﻿using System;
 using System.Collections;
-using System.Windows.Forms;
+//using System.Windows.Forms;
 using System.Xml;
 
 namespace Chummer
@@ -28,7 +28,7 @@ namespace Chummer
 	/// </summary>
 	public class ListItem
 	{
-		public static ListItem AutoXml(string value, XmlNode node)
+		public static ListItem AutoXml(string value, IXmlNode node)
 		{
 			string display = node.Attributes["translate"]?.InnerText ?? node.InnerText;
 
@@ -93,8 +93,8 @@ namespace Chummer
 	{
 		public int Compare(object objX, object objY)
 		{
-			TreeNode tx = objX as TreeNode;
-			TreeNode ty = objY as TreeNode;
+			ITreeNode tx = objX as ITreeNode;
+			ITreeNode ty = objY as ITreeNode;
 
 			return string.Compare(tx.Text.Replace("[", string.Empty).Replace("]", string.Empty), ty.Text.Replace("[", string.Empty).Replace("]", string.Empty));
 		}

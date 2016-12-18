@@ -181,330 +181,330 @@ namespace Chummer
 		/// </summary>
 		/// <param name="strLanguage">Language to Load.</param>
 		/// <param name="objObject">Object to translate after loading the data.</param>
-		public void Load(string strLanguage, object objObject, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay)
-		{
-            LanguageManager.documentFactory = documentFactory;
-            LanguageManager.messageDisplay = messageDisplay;
-            _objXmlDataDocument = documentFactory.CreateNew();
-            // _strLanguage is populated when the language is read for the first time, meaning this is only triggered once (and language is only read in once since it shouldn't change).
-            string strFilePath = "";
-			if (strLanguage != "en-us" && _strLanguage == "")
-			{
-				try
-				{
-					_strLanguage = strLanguage;
-                    IXmlDocument objLanguageDocument = documentFactory.CreateNew();
-					strFilePath = Path.Combine(Application.StartupPath, "lang", strLanguage + ".xml");
-					objLanguageDocument.Load(strFilePath);
-					_objXmlDocument.Load(strFilePath);
-					foreach (IXmlNode objNode in objLanguageDocument.SelectNodes("/chummer/strings/string"))
-					{
-						// Look for the English version of the found string. If it has been found, replace the English contents with the contents from this file.
-						// If the string was not found, then someone has inserted a Key that should not exist and is ignored.
-						try
-						{
-							if (_objDictionary[objNode["key"].InnerText] != null)
-								_objDictionary[objNode["key"].InnerText] = objNode["text"].InnerText;
-						}
-						catch
-						{
-						}
-					}
-				}
-				catch (Exception)
-				{
-					_strLanguage = strLanguage;
-					messageDisplay.ShowError("Language file " + strFilePath + " could not be loaded.", "Cannot Load Language");
-					return;
-				}
+		//public void Load(string strLanguage, object objObject, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay)
+		//{
+  //          LanguageManager.documentFactory = documentFactory;
+  //          LanguageManager.messageDisplay = messageDisplay;
+  //          _objXmlDataDocument = documentFactory.CreateNew();
+  //          // _strLanguage is populated when the language is read for the first time, meaning this is only triggered once (and language is only read in once since it shouldn't change).
+  //          string strFilePath = "";
+		//	//if (strLanguage != "en-us" && _strLanguage == "") // is always "en-us"
+		//	//{
+		//	//	try
+		//	//	{
+		//	//		_strLanguage = strLanguage;
+  // //                 IXmlDocument objLanguageDocument = documentFactory.CreateNew();
+		//	//		strFilePath = Path.Combine(Application.StartupPath, "lang", strLanguage + ".xml");
+		//	//		objLanguageDocument.Load(strFilePath);
+		//	//		_objXmlDocument.Load(strFilePath);
+		//	//		foreach (IXmlNode objNode in objLanguageDocument.SelectNodes("/chummer/strings/string"))
+		//	//		{
+		//	//			// Look for the English version of the found string. If it has been found, replace the English contents with the contents from this file.
+		//	//			// If the string was not found, then someone has inserted a Key that should not exist and is ignored.
+		//	//			try
+		//	//			{
+		//	//				if (_objDictionary[objNode["key"].InnerText] != null)
+		//	//					_objDictionary[objNode["key"].InnerText] = objNode["text"].InnerText;
+		//	//			}
+		//	//			catch
+		//	//			{
+		//	//			}
+		//	//		}
+		//	//	}
+		//	//	catch (Exception)
+		//	//	{
+		//	//		_strLanguage = strLanguage;
+		//	//		messageDisplay.ShowError("Language file " + strFilePath + " could not be loaded.", "Cannot Load Language");
+		//	//		return;
+		//	//	}
 
-				// Check to see if the data translation file for the selected language exists.
-				string strDataPath = Path.Combine(Application.StartupPath, "lang", strLanguage + "_data.xml");
-				if (File.Exists(strDataPath))
-				{
-					try
-					{
-						_objXmlDataDocument = documentFactory.CreateNew();
-                        _objXmlDataDocument.Load(strDataPath);
-					}
-					catch
-					{
-						// Failing to load the data translation file should not render the application unusable.
-					}
-				}
-			}
+		//	//	// Check to see if the data translation file for the selected language exists.
+		//	//	string strDataPath = Path.Combine(Application.StartupPath, "lang", strLanguage + "_data.xml");
+		//	//	if (File.Exists(strDataPath))
+		//	//	{
+		//	//		try
+		//	//		{
+		//	//			_objXmlDataDocument = documentFactory.CreateNew();
+  // //                     _objXmlDataDocument.Load(strDataPath);
+		//	//		}
+		//	//		catch
+		//	//		{
+		//	//			// Failing to load the data translation file should not render the application unusable.
+		//	//		}
+		//	//	}
+		//	//}
 
-			// If the object is a Form, call the UpdateForm method to provide its translations.
-			if (objObject is Form)
-				UpdateForm((Form)objObject);
+		//	// If the object is a Form, call the UpdateForm method to provide its translations.
+		//	//if (objObject is Form)
+		//	//	UpdateForm((Form)objObject);
 
-			// If the object is a UserControl, call the UpdateUserControl method to provide its translations.
-			if (objObject is UserControl)
-				UpdateUserControl((UserControl)objObject);
-		}
+		//	//// If the object is a UserControl, call the UpdateUserControl method to provide its translations.
+		//	//if (objObject is UserControl)
+		//	//	UpdateUserControl((UserControl)objObject);
+		//}
 
 		/// <summary>
 		/// Recursive method to translate all of the controls in a Form or UserControl.
 		/// </summary>
 		/// <param name="objParent">Control container to translate.</param>
-		private void UpdateControls(Control objParent)
-		{
-			// Translatable items are identified by having a value in their Tag attribute. The contents of Tag is the string to lookup in the language list.
+		//private void UpdateControls(Control objParent)
+		//{
+		//	// Translatable items are identified by having a value in their Tag attribute. The contents of Tag is the string to lookup in the language list.
 
-			foreach (Label lblLabel in objParent.Controls.OfType<Label>())
-			{
-				if (lblLabel.Tag != null)
-				{
-					try
-					{
-						lblLabel.Text = GetString(lblLabel.Tag.ToString());
-					}
-					catch
-					{
-						if (_blnDebug)
-							throw;
-						else
-							lblLabel.Text = lblLabel.Tag.ToString();
-					}
-				}
-			}
-			foreach (Button cmdButton in objParent.Controls.OfType<Button>())
-			{
-				if (cmdButton.Tag != null)
-				{
-					try
-					{
-						cmdButton.Text = GetString(cmdButton.Tag.ToString());
-					}
-					catch
-					{
-						if (_blnDebug)
-							throw;
-						else
-							cmdButton.Text = cmdButton.Tag.ToString();
-					}
-				}
-			}
-			foreach (CheckBox chkCheckbox in objParent.Controls.OfType<CheckBox>())
-			{
-				if (chkCheckbox.Tag != null)
-				{
-					try
-					{
-						if (chkCheckbox.Tag.ToString().Contains("_"))
-							chkCheckbox.Text = GetString(chkCheckbox.Tag.ToString());
-					}
-					catch
-					{
-						if (_blnDebug)
-							throw;
-						else
-							chkCheckbox.Text = chkCheckbox.Tag.ToString();
-					}
-				}
-			}
-			foreach (ListView lstList in objParent.Controls.OfType<ListView>())
-			{
-				foreach (ColumnHeader objHeader in lstList.Columns)
-				{
-					if (objHeader.Tag != null)
-					{
-						try
-						{
-							objHeader.Text = GetString(objHeader.Tag.ToString());
-						}
-						catch
-						{
-							if (_blnDebug)
-								throw;
-							else
-								objHeader.Text = objHeader.Tag.ToString();
-						}
-					}
-				}
-			}
+		//	foreach (Label lblLabel in objParent.Controls.OfType<Label>())
+		//	{
+		//		if (lblLabel.Tag != null)
+		//		{
+		//			try
+		//			{
+		//				lblLabel.Text = GetString(lblLabel.Tag.ToString());
+		//			}
+		//			catch
+		//			{
+		//				if (_blnDebug)
+		//					throw;
+		//				else
+		//					lblLabel.Text = lblLabel.Tag.ToString();
+		//			}
+		//		}
+		//	}
+		//	foreach (Button cmdButton in objParent.Controls.OfType<Button>())
+		//	{
+		//		if (cmdButton.Tag != null)
+		//		{
+		//			try
+		//			{
+		//				cmdButton.Text = GetString(cmdButton.Tag.ToString());
+		//			}
+		//			catch
+		//			{
+		//				if (_blnDebug)
+		//					throw;
+		//				else
+		//					cmdButton.Text = cmdButton.Tag.ToString();
+		//			}
+		//		}
+		//	}
+		//	foreach (CheckBox chkCheckbox in objParent.Controls.OfType<CheckBox>())
+		//	{
+		//		if (chkCheckbox.Tag != null)
+		//		{
+		//			try
+		//			{
+		//				if (chkCheckbox.Tag.ToString().Contains("_"))
+		//					chkCheckbox.Text = GetString(chkCheckbox.Tag.ToString());
+		//			}
+		//			catch
+		//			{
+		//				if (_blnDebug)
+		//					throw;
+		//				else
+		//					chkCheckbox.Text = chkCheckbox.Tag.ToString();
+		//			}
+		//		}
+		//	}
+		//	foreach (ListView lstList in objParent.Controls.OfType<ListView>())
+		//	{
+		//		foreach (ColumnHeader objHeader in lstList.Columns)
+		//		{
+		//			if (objHeader.Tag != null)
+		//			{
+		//				try
+		//				{
+		//					objHeader.Text = GetString(objHeader.Tag.ToString());
+		//				}
+		//				catch
+		//				{
+		//					if (_blnDebug)
+		//						throw;
+		//					else
+		//						objHeader.Text = objHeader.Tag.ToString();
+		//				}
+		//			}
+		//		}
+		//	}
 
-			// Run through any Panels on the container.
-			foreach (Panel objPanel in objParent.Controls.OfType<Panel>())
-			{
-				UpdateControls(objPanel);
-			}
+		//	// Run through any Panels on the container.
+		//	foreach (Panel objPanel in objParent.Controls.OfType<Panel>())
+		//	{
+		//		UpdateControls(objPanel);
+		//	}
 
-			// Run through any Tabs on the container.
-			foreach (TabControl objTabControl in objParent.Controls.OfType<TabControl>())
-			{
-				foreach (TabPage tabPage in objTabControl.TabPages)
-				{
-					if (tabPage.Tag != null)
-					{
-						try
-						{
-							tabPage.Text = GetString(tabPage.Tag.ToString());
-						}
-						catch
-						{
-							if (_blnDebug)
-								throw;
-							else
-								tabPage.Text = tabPage.Tag.ToString();
-						}
-					}
+		//	// Run through any Tabs on the container.
+		//	foreach (TabControl objTabControl in objParent.Controls.OfType<TabControl>())
+		//	{
+		//		foreach (TabPage tabPage in objTabControl.TabPages)
+		//		{
+		//			if (tabPage.Tag != null)
+		//			{
+		//				try
+		//				{
+		//					tabPage.Text = GetString(tabPage.Tag.ToString());
+		//				}
+		//				catch
+		//				{
+		//					if (_blnDebug)
+		//						throw;
+		//					else
+		//						tabPage.Text = tabPage.Tag.ToString();
+		//				}
+		//			}
 
-					UpdateControls(tabPage);
-				}
-			}
+		//			UpdateControls(tabPage);
+		//		}
+		//	}
 
-			// Run through everything in any SplitContainers.
-			foreach (SplitContainer objSplitControl in objParent.Controls.OfType<SplitContainer>())
-			{
-				for (int i = 1; i <= 2; i++)
-				{
-					SplitterPanel objSplitPanel;
-					if (i == 1)
-						objSplitPanel = objSplitControl.Panel1;
-					else
-						objSplitPanel = objSplitControl.Panel2;
+		//	// Run through everything in any SplitContainers.
+		//	foreach (SplitContainer objSplitControl in objParent.Controls.OfType<SplitContainer>())
+		//	{
+		//		for (int i = 1; i <= 2; i++)
+		//		{
+		//			SplitterPanel objSplitPanel;
+		//			if (i == 1)
+		//				objSplitPanel = objSplitControl.Panel1;
+		//			else
+		//				objSplitPanel = objSplitControl.Panel2;
 
-					UpdateControls(objSplitPanel);
-				}
-			}
+		//			UpdateControls(objSplitPanel);
+		//		}
+		//	}
 
-			// Run through any FlowLayoutPanels on the container.
-			foreach (FlowLayoutPanel objContainer in objParent.Controls.OfType<FlowLayoutPanel>())
-			{
-				UpdateControls(objContainer);
-			}
+		//	// Run through any FlowLayoutPanels on the container.
+		//	foreach (FlowLayoutPanel objContainer in objParent.Controls.OfType<FlowLayoutPanel>())
+		//	{
+		//		UpdateControls(objContainer);
+		//	}
 
-			foreach (TreeView treTree in objParent.Controls.OfType<TreeView>())
-			{
-				foreach (TreeNode objNode in treTree.Nodes)
-				{
-					if (objNode.Level == 0)
-					{
-						if (objNode.Tag != null)
-						{
-							if (objNode.Tag.ToString().StartsWith("Node_"))
-							{
-								try
-								{
-									objNode.Text = GetString(objNode.Tag.ToString());
-								}
-								catch
-								{
-									if (_blnDebug)
-										throw;
-									else
-										objNode.Text = objNode.Tag.ToString();
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+		//	foreach (TreeView treTree in objParent.Controls.OfType<TreeView>())
+		//	{
+		//		foreach (TreeNode objNode in treTree.Nodes)
+		//		{
+		//			if (objNode.Level == 0)
+		//			{
+		//				if (objNode.Tag != null)
+		//				{
+		//					if (objNode.Tag.ToString().StartsWith("Node_"))
+		//					{
+		//						try
+		//						{
+		//							objNode.Text = GetString(objNode.Tag.ToString());
+		//						}
+		//						catch
+		//						{
+		//							if (_blnDebug)
+		//								throw;
+		//							else
+		//								objNode.Text = objNode.Tag.ToString();
+		//						}
+		//					}
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
 
 		/// <summary>
 		/// Translate the contents of a UserControl.
 		/// </summary>
 		/// <param name="objControl">UserControl to translate.</param>
-		private void UpdateUserControl(UserControl objControl)
-		{
-			UpdateControls(objControl);
-		}
+		//private void UpdateUserControl(UserControl objControl)
+		//{
+		//	UpdateControls(objControl);
+		//}
 
 		/// <summary>
 		/// Translate the contents of a Form.
 		/// </summary>
 		/// <param name="objForm">Form to translate.</param>
-		private void UpdateForm(Form objForm)
-		{
-			// Translatable items are identified by having a value in their Tag attribute. The contents of Tag is the string to lookup in the language list.
-			// Update the Form itself.
-			if (objForm.Tag != null)
-			{
-				try
-				{
-					objForm.Text = GetString(objForm.Tag.ToString());
-				}
-				catch
-				{
-					if (_blnDebug)
-						throw;
-					else
-						objForm.Text = objForm.Tag.ToString();
-				}
-			}
+		//private void UpdateForm(Form objForm)
+		//{
+		//	// Translatable items are identified by having a value in their Tag attribute. The contents of Tag is the string to lookup in the language list.
+		//	// Update the Form itself.
+		//	if (objForm.Tag != null)
+		//	{
+		//		try
+		//		{
+		//			objForm.Text = GetString(objForm.Tag.ToString());
+		//		}
+		//		catch
+		//		{
+		//			if (_blnDebug)
+		//				throw;
+		//			else
+		//				objForm.Text = objForm.Tag.ToString();
+		//		}
+		//	}
 
-            // update any menu strip items that have tags
-            if (objForm.MainMenuStrip != null)
-            {
-                foreach (ToolStripMenuItem objItem in objForm.MainMenuStrip.Items)
-                    SetMenuItemsRecursively(objItem);
-            }
+  //          // update any menu strip items that have tags
+  //          if (objForm.MainMenuStrip != null)
+  //          {
+  //              foreach (ToolStripMenuItem objItem in objForm.MainMenuStrip.Items)
+  //                  SetMenuItemsRecursively(objItem);
+  //          }
 
-			// Run through any StatusStrips.
-			foreach (StatusStrip objStrip in objForm.Controls.OfType<StatusStrip>())
-			{
-				foreach (ToolStripStatusLabel tssLabel in objStrip.Items.OfType<ToolStripStatusLabel>())
-				{
-					if (tssLabel.Tag != null)
-						try
-						{
-							tssLabel.Text = GetString(tssLabel.Tag.ToString());
-						}
-						catch
-						{
-							if (_blnDebug)
-								throw;
-							else
-								tssLabel.Text = tssLabel.Tag.ToString();
-						}
-				}
-			}
+		//	// Run through any StatusStrips.
+		//	foreach (StatusStrip objStrip in objForm.Controls.OfType<StatusStrip>())
+		//	{
+		//		foreach (ToolStripStatusLabel tssLabel in objStrip.Items.OfType<ToolStripStatusLabel>())
+		//		{
+		//			if (tssLabel.Tag != null)
+		//				try
+		//				{
+		//					tssLabel.Text = GetString(tssLabel.Tag.ToString());
+		//				}
+		//				catch
+		//				{
+		//					if (_blnDebug)
+		//						throw;
+		//					else
+		//						tssLabel.Text = tssLabel.Tag.ToString();
+		//				}
+		//		}
+		//	}
 
-			// Handle control over to the method that handles translating all of the other Controls.
-			UpdateControls(objForm);
-		}
+		//	// Handle control over to the method that handles translating all of the other Controls.
+		//	UpdateControls(objForm);
+		//}
 
         /// <summary>
         /// Loads the proper language from the language file for every menu item recursively
         /// </summary>
         /// <param name="objItem"></param>
-        private void SetMenuItemsRecursively(ToolStripMenuItem objItem)
-        {
-            if (objItem.Tag != null)
-                try
-                {
-                    objItem.Text = GetString(objItem.Tag.ToString());
-                }
-                catch
-                {
-                    if (_blnDebug)
-                        throw;
-                    else
-                        objItem.Text = objItem.Tag.ToString();
-                }
+        //private void SetMenuItemsRecursively(ToolStripMenuItem objItem)
+        //{
+        //    if (objItem.Tag != null)
+        //        try
+        //        {
+        //            objItem.Text = GetString(objItem.Tag.ToString());
+        //        }
+        //        catch
+        //        {
+        //            if (_blnDebug)
+        //                throw;
+        //            else
+        //                objItem.Text = objItem.Tag.ToString();
+        //        }
 
-            if (objItem.DropDownItems == null || objItem.DropDownItems.Count == 0)
-                return; // we have no more drop down items to pull
+        //    if (objItem.DropDownItems == null || objItem.DropDownItems.Count == 0)
+        //        return; // we have no more drop down items to pull
 
-            foreach (ToolStripMenuItem objRecursiveItem in objItem.DropDownItems.OfType<ToolStripMenuItem>())
-            {
-                SetMenuItemsRecursively(objRecursiveItem);
-                if (objItem.Tag != null)
-                    try
-                    {
-                        objItem.Text = GetString(objItem.Tag.ToString());
-                    }
-                    catch
-                    {
-                        if (_blnDebug)
-                            throw;
-                        else
-                            objItem.Text = objItem.Tag.ToString();
-                    }
-            }
-        }
+        //    foreach (ToolStripMenuItem objRecursiveItem in objItem.DropDownItems.OfType<ToolStripMenuItem>())
+        //    {
+        //        SetMenuItemsRecursively(objRecursiveItem);
+        //        if (objItem.Tag != null)
+        //            try
+        //            {
+        //                objItem.Text = GetString(objItem.Tag.ToString());
+        //            }
+        //            catch
+        //            {
+        //                if (_blnDebug)
+        //                    throw;
+        //                else
+        //                    objItem.Text = objItem.Tag.ToString();
+        //            }
+        //    }
+        //}
        
 
 		/// <summary>
@@ -530,14 +530,14 @@ namespace Chummer
 		/// Check the Keys in the selected language file against the English version. 
 		/// </summary>
 		/// <param name="strLanguage">Language to check.</param>
-		public void VerifyStrings(string strLanguage)
+		public void VerifyStrings(string strLanguage, string xmlPath)
 		{
 			// Load the English version.
 			List<LanguageString> lstEnglish = new List<LanguageString>();
             IXmlDocument objEnglishDocument = documentFactory.CreateNew();
-			string strFilePath = Path.Combine(Application.StartupPath, "lang", "en-us.xml");
+			string strFilePath = Path.Combine(xmlPath, "lang", "en-us.xml");
 			objEnglishDocument.Load(strFilePath);
-			foreach (XmlNode objNode in objEnglishDocument.SelectNodes("/chummer/strings/string"))
+			foreach (IXmlNode objNode in objEnglishDocument.SelectNodes("/chummer/strings/string"))
 			{
 				LanguageString objString = new LanguageString();
 				objString.Key = objNode["key"].InnerText;
@@ -547,10 +547,10 @@ namespace Chummer
 
 			// Load the selected language version.
 			List<LanguageString> lstLanguage = new List<LanguageString>();
-			XmlDocument objLanguageDocument = new IXmlDocument();
-			string strLangPath = Path.Combine(Application.StartupPath, "lang", strLanguage + ".xml");
+            IXmlDocument objLanguageDocument = documentFactory.CreateNew();
+			string strLangPath = Path.Combine(xmlPath, "lang", strLanguage + ".xml");
 			objLanguageDocument.Load(strLangPath);
-			foreach (XmlNode objNode in objLanguageDocument.SelectNodes("/chummer/strings/string"))
+			foreach (IXmlNode objNode in objLanguageDocument.SelectNodes("/chummer/strings/string"))
 			{
 				LanguageString objString = new LanguageString();
 				objString.Key = objNode["key"].InnerText;
@@ -576,9 +576,9 @@ namespace Chummer
 
 			// Display the message.
 			if (strMessage != "")
-				MessageBox.Show(strMessage, "Language File Contents", MessageBoxButtons.OK, MessageBoxIcon.Information);
+				messageDisplay.ShowInfo(strMessage, "Language File Contents");
 			else
-				MessageBox.Show("Language file is OK.", "Language File Contents", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                messageDisplay.ShowInfo("Language file is OK.", "Language File Contents");
 		}
 
 		/// <summary>
@@ -592,11 +592,11 @@ namespace Chummer
 			// Only attempt to translate if we're not using English. Don't attempt to translate an empty string either.
 			if (_strLanguage != "en-us" && strExtra.Trim() != "")
 			{
-				XmlDocument objXmlDocument = new IXmlDocument();
+                IXmlDocument objXmlDocument = documentFactory.CreateNew();
 
 				// Look in Weapon Categories.
 				objXmlDocument = XmlManager.Instance.Load("weapons.xml");
-				XmlNode objNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + strExtra.Replace("\"", string.Empty) + "\"]");
+				IXmlNode objNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + strExtra.Replace("\"", string.Empty) + "\"]");
 				if (objNode != null)
 				{
 					if (objNode.Attributes["translate"] != null)
@@ -629,8 +629,8 @@ namespace Chummer
 					}
 				}
 
-				XmlNodeList objNodelist = objXmlDocument.SelectNodes("/chummer/skills/skill/specs/spec");
-				foreach (XmlNode objXMLNode in objNodelist)
+				IXmlNodeList objNodelist = objXmlDocument.SelectNodes("/chummer/skills/skill/specs/spec");
+				foreach (IXmlNode objXMLNode in objNodelist)
 				{
 					if (objXMLNode.InnerText == strExtra)
 					{ 

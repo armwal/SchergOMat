@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
-using System.Windows.Forms;
+//using System.Windows.Forms;
 
 namespace Chummer
 {
@@ -34,7 +34,7 @@ namespace Chummer
 		{
 			private DateTime _datDate = new DateTime();
 			private string _strFileName = "";
-			private XmlDocument _objXmlDocument = new XmlDocument();
+			private IXmlDocument _objXmlDocument;
 
 			/// <summary>
 			/// Date/Time stamp on the XML file.
@@ -69,7 +69,7 @@ namespace Chummer
 			/// <summary>
 			/// XmlDocument that is created by merging the base data file and data translation file. Does not include custom content since this must be loaded each time.
 			/// </summary>
-			public XmlDocument XmlContent
+			public IXmlDocument XmlContent
 			{
 				get
 				{
@@ -88,7 +88,8 @@ namespace Chummer
 		#region Constructor and Instance
 		static XmlManager()
 		{
-			LanguageManager.Instance.Load(GlobalOptions.Instance.Language, null);
+			//LanguageManager.Instance.Load(GlobalOptions.Instance.Language, null);
+            
 		}
 
 		XmlManager()
@@ -112,9 +113,9 @@ namespace Chummer
 		/// Load the selected XML file and its associated custom file.
 		/// </summary>
 		/// <param name="strFileName">Name of the XML file to load.</param>
-		public XmlDocument Load(string strFileName)
+		public IXmlDocument Load(string strFileName, string startupPath)
 		{
-			string strPath = Path.Combine(Application.StartupPath, "data", strFileName);
+			string strPath = Path.Combine(startupPath, "data", strFileName);
 			DateTime datDate = File.GetLastWriteTime(strPath);
 
 			// Look to see if this XmlDocument is already loaded.

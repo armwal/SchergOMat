@@ -18,5 +18,6 @@ namespace Chummer
         void WriteEndDocument();
         void Flush();
         void Close();
+        void WriteRaw(string value);
     }
 }
