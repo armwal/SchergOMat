@@ -66,7 +66,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="objNode">TreeNode to populate a TreeView.</param>
 		/// <param name="strMount">Mount slot that the Weapon Accessory will consume.</param>
 		/// <param name="intRating">Rating of the Weapon Accessory.</param>
-		public void Create(XmlNode objXmlAccessory, TreeNode objNode, string strMount, int intRating)
+		public void Create(IXmlNode objXmlAccessory, ITreeNode objNode, string strMount, int intRating)
 		{
 			_strName = objXmlAccessory["name"].InnerText;
 			_strMount = strMount;

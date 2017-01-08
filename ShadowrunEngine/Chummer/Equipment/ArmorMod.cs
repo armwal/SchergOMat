@@ -71,7 +71,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="objWeapons">List of Weapons that are created by the Armor.</param>
 		/// <param name="objWeaponNodes">List of Weapon Nodes that are created by the Armor.</param>
 		/// <param name="blnSkipCost">Whether or not creating the Armor should skip the Variable price dialogue (should only be used by frmSelectArmor).</param>
-		public void Create(XmlNode objXmlArmorNode, TreeNode objNode, int intRating, List<Weapon> objWeapons, List<TreeNode> objWeaponNodes, bool blnSkipCost = false)
+		public void Create(IXmlNode objXmlArmorNode, ITreeNode objNode, int intRating, List<Weapon> objWeapons, List<ITreeNode> objWeaponNodes, bool blnSkipCost = false)
 		{
 			_strName = objXmlArmorNode["name"].InnerText;
 			_strCategory = objXmlArmorNode["category"].InnerText;
@@ -182,7 +182,7 @@ namespace Chummer.Backend.Equipment
 		/// Load the CharacterAttribute from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode, bool blnCopy = false)
+		public void Load(IXmlNode objNode, bool blnCopy = false)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;

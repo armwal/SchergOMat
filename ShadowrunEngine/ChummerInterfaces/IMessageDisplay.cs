@@ -24,5 +24,6 @@ namespace Chummer
         string PickPower(Character character, string description, string limitToPowers);
         string PickOptionalPower(Character character, string description, List<KeyValuePair<string, string>> limitList, string singlePower);
         int PickNumber(string description, int minimum, int maximum);
+        string PickWeaponCategory(string description, string type, string onlyType = "");
     }
 }

@@ -82,7 +82,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="cmsWeapon">ContextMenuStrip to use for Weapons.</param>
 		/// <param name="cmsWeaponAccessory">ContextMenuStrip to use for Accessories.</param>
 		/// <param name="blnCreateChildren">Whether or not child items should be created.</param>
-		public void Create(IXmlNode objXmlWeapon, Character objCharacter, ITreeNode objNode, ContextMenuStrip cmsWeapon, ContextMenuStrip cmsWeaponAccessory, bool blnCreateChildren = true)
+		public void Create(IXmlNode objXmlWeapon, Character objCharacter, ITreeNode objNode, IContextMenuStrip cmsWeapon, IContextMenuStrip cmsWeaponAccessory, bool blnCreateChildren = true)
 		{
 			_strName = objXmlWeapon["name"].InnerText;
 			_strCategory = objXmlWeapon["category"].InnerText;

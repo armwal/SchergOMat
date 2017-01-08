@@ -1,10 +1,11 @@
+using ShadowrunEngine.ChummerInterfaces;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+//using System.Drawing;
 using System.Linq;
-using System.Windows.Forms;
+//using System.Windows.Forms;
 using System.Xml;
-using System.Xml.XPath;
+//using System.Xml.XPath;
 
 namespace Chummer.Backend.Equipment
 {
@@ -50,35 +51,43 @@ namespace Chummer.Backend.Equipment
 		private List<string> _lstLocations = new List<string>();
 		private bool _blnDealerConnectionDiscount = false;
 		private bool _blnBlackMarketDiscount = false;
+        private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
+        private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
-		private readonly Character _objCharacter;
+        private readonly Character _objCharacter;
 
 		// Condition Monitor Progress.
 		private int _intPhysicalCMFilled = 0;
 		private int _intMatrixCMFilled = 0;
 
 		#region Constructor, Create, Save, Load, and Print Methods
-		public Vehicle(Character objCharacter)
+		public Vehicle(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Vehicle.
 			_guiID = Guid.NewGuid();
 			_objCharacter = objCharacter;
-		}
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
+        }
 
-		/// Create a Vehicle from an XmlNode and return the TreeNodes for it.
-		/// <param name="objXmlVehicle">XmlNode of the Vehicle to create.</param>
-		/// <param name="objNode">TreeNode to add to a TreeView.</param>
-		/// <param name="cmsVehicle">ContextMenuStrip to attach to Weapon Mounts.</param>
-		/// <param name="cmsVehicleGear">ContextMenuStrip to attach to Gear.</param>
-		/// <param name="cmsVehicleWeapon">ContextMenuStrip to attach to Vehicle Weapons.</param>
-		/// <param name="cmsVehicleWeaponAccessory">ContextMenuStrip to attach to Weapon Accessories.</param>
-		/// <param name="blnCreateChildren">Whether or not child items should be created.</param>
-		public void Create(XmlNode objXmlVehicle, TreeNode objNode, ContextMenuStrip cmsVehicle, ContextMenuStrip cmsVehicleGear, ContextMenuStrip cmsVehicleWeapon, ContextMenuStrip cmsVehicleWeaponAccessory, bool blnCreateChildren = true)
+        /// Create a Vehicle from an XmlNode and return the TreeNodes for it.
+        /// <param name="objXmlVehicle">XmlNode of the Vehicle to create.</param>
+        /// <param name="objNode">TreeNode to add to a TreeView.</param>
+        /// <param name="cmsVehicle">ContextMenuStrip to attach to Weapon Mounts.</param>
+        /// <param name="cmsVehicleGear">ContextMenuStrip to attach to Gear.</param>
+        /// <param name="cmsVehicleWeapon">ContextMenuStrip to attach to Vehicle Weapons.</param>
+        /// <param name="cmsVehicleWeaponAccessory">ContextMenuStrip to attach to Weapon Accessories.</param>
+        /// <param name="blnCreateChildren">Whether or not child items should be created.</param>
+        public void Create(IXmlNode objXmlVehicle, ITreeNode objNode, IContextMenuStrip cmsVehicle, IContextMenuStrip cmsVehicleGear, IContextMenuStrip cmsVehicleWeapon, IContextMenuStrip cmsVehicleWeaponAccessory, bool blnCreateChildren = true)
 		{
 			_strName = objXmlVehicle["name"].InnerText;
 			_strCategory = objXmlVehicle["category"].InnerText;
 			//Some vehicles have different Offroad Handling speeds. If so, we want to split this up for use with mods and such later.
-			if (objXmlVehicle["handling"].InnerText.Contains('/'))
+			if (objXmlVehicle["handling"].InnerText.Contains("/"))
 			{
 				_intHandling = Convert.ToInt32(objXmlVehicle["handling"].InnerText.Split('/')[0]);
 				_intOffroadHandling = Convert.ToInt32(objXmlVehicle["handling"].InnerText.Split('/')[1]);
@@ -121,39 +130,40 @@ namespace Chummer.Backend.Equipment
 
 				if (intMin != 0 || intMax != 0)
 				{
-					frmSelectNumber frmPickNumber = new frmSelectNumber();
+					//frmSelectNumber frmPickNumber = new frmSelectNumber();
 					if (intMax == 0)
 						intMax = 1000000;
-					frmPickNumber.Minimum = intMin;
-					frmPickNumber.Maximum = intMax;
-					frmPickNumber.Description = LanguageManager.Instance.GetString("String_SelectVariableCost").Replace("{0}", DisplayNameShort);
-					frmPickNumber.AllowCancel = false;
-					frmPickNumber.ShowDialog();
-					_strCost = frmPickNumber.SelectedValue.ToString();
+					//frmPickNumber.Minimum = intMin;
+					//frmPickNumber.Maximum = intMax;
+					string description = LanguageManager.Instance.GetString("String_SelectVariableCost").Replace("{0}", DisplayNameShort);
+                    //frmPickNumber.AllowCancel = false;
+                    //frmPickNumber.ShowDialog();
+                    //_strCost = frmPickNumber.SelectedValue.ToString();
+                    _strCost = messageDisplay.PickNumber(description, intMin, intMax).ToString();
 				}
 			}
 			_strSource = objXmlVehicle["source"].InnerText;
 			_strPage = objXmlVehicle["page"].InnerText;
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("vehicles.xml");
-				XmlNode objVehicleNode = objXmlDocument.SelectSingleNode("/chummer/vehicles/vehicle[name = \"" + _strName + "\"]");
-				if (objVehicleNode != null)
-				{
-					if (objVehicleNode["translate"] != null)
-						_strAltName = objVehicleNode["translate"].InnerText;
-					if (objVehicleNode["altpage"] != null)
-						_strAltPage = objVehicleNode["altpage"].InnerText;
-				}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument objXmlDocument = XmlManager.Instance.Load("vehicles.xml");
+			//	XmlNode objVehicleNode = objXmlDocument.SelectSingleNode("/chummer/vehicles/vehicle[name = \"" + _strName + "\"]");
+			//	if (objVehicleNode != null)
+			//	{
+			//		if (objVehicleNode["translate"] != null)
+			//			_strAltName = objVehicleNode["translate"].InnerText;
+			//		if (objVehicleNode["altpage"] != null)
+			//			_strAltPage = objVehicleNode["altpage"].InnerText;
+			//	}
 
-				objVehicleNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-				if (objVehicleNode != null)
-				{
-					if (objVehicleNode.Attributes["translate"] != null)
-						_strAltCategory = objVehicleNode.Attributes["translate"].InnerText;
-				}
-			}
+			//	objVehicleNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
+			//	if (objVehicleNode != null)
+			//	{
+			//		if (objVehicleNode.Attributes["translate"] != null)
+			//			_strAltCategory = objVehicleNode.Attributes["translate"].InnerText;
+			//	}
+			//}
 
 			objNode.Text = DisplayName;
 			objNode.Tag = _guiID.ToString();
@@ -161,16 +171,16 @@ namespace Chummer.Backend.Equipment
 			// If there are any VehicleMods that come with the Vehicle, add them.
 			if (objXmlVehicle.InnerXml.Contains("<mods>") && blnCreateChildren)
 			{
-				XmlDocument objXmlDocument = new XmlDocument();
-				objXmlDocument = XmlManager.Instance.Load("vehicles.xml");
+                IXmlDocument objXmlDocument = documentFactory.CreateNew();
+				objXmlDocument = XmlManager.Instance.Load("vehicles.xml", fileAccess, documentFactory);
 
-				XmlNodeList objXmlModList = objXmlVehicle.SelectNodes("mods/name");
-				foreach (XmlNode objXmlVehicleMod in objXmlModList)
+				IXmlNodeList objXmlModList = objXmlVehicle.SelectNodes("mods/name");
+				foreach (IXmlNode objXmlVehicleMod in objXmlModList)
 				{
-					XmlNode objXmlMod = objXmlDocument.SelectSingleNode("/chummer/mods/mod[name = \"" + objXmlVehicleMod.InnerText + "\"]");
+					IXmlNode objXmlMod = objXmlDocument.SelectSingleNode("/chummer/mods/mod[name = \"" + objXmlVehicleMod.InnerText + "\"]");
 					if (objXmlMod != null)
 					{
-						TreeNode objModNode = new TreeNode();
+                        ITreeNode objModNode = displayFactory.CreateTreeNode();
 						VehicleMod objMod = new VehicleMod(_objCharacter);
 						int intRating = 0;
 
@@ -184,7 +194,7 @@ namespace Chummer.Backend.Equipment
 						objMod.IncludedInVehicle = true;
 
 						_lstVehicleMods.Add(objMod);
-						objModNode.ForeColor = SystemColors.GrayText;
+						//objModNode.ForeColor = SystemColors.GrayText;
 						objModNode.ContextMenuStrip = cmsVehicle;
 
 						objNode.Nodes.Add(objModNode);
@@ -198,16 +208,16 @@ namespace Chummer.Backend.Equipment
 			// If there is any Gear that comes with the Vehicle, add them.
 			if (objXmlVehicle.InnerXml.Contains("<gears>") && blnCreateChildren)
 			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("gear.xml");
+				IXmlDocument objXmlDocument = XmlManager.Instance.Load("gear.xml", fileAccess, documentFactory);
 
-				XmlNodeList objXmlGearList = objXmlVehicle.SelectNodes("gears/gear");
-				foreach (XmlNode objXmlVehicleGear in objXmlGearList)
+				IXmlNodeList objXmlGearList = objXmlVehicle.SelectNodes("gears/gear");
+				foreach (IXmlNode objXmlVehicleGear in objXmlGearList)
 				{
-					XmlNode objXmlGear = objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + objXmlVehicleGear.InnerText + "\"]");
+					IXmlNode objXmlGear = objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + objXmlVehicleGear.InnerText + "\"]");
 					if (objXmlGear != null)
 					{
-						TreeNode objGearNode = new TreeNode();
-						Gear objGear = new Gear(_objCharacter);
+                        ITreeNode objGearNode = displayFactory.CreateTreeNode();
+						Gear objGear = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						int intRating = 0;
 						int intQty = 1;
 						string strForceValue = "";
@@ -228,7 +238,7 @@ namespace Chummer.Backend.Equipment
 							strForceValue = "";
 
 						List<Weapon> objWeapons = new List<Weapon>();
-						List<TreeNode> objWeaponNodes = new List<TreeNode>();
+						List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
 						objGear.Create(objXmlGear, _objCharacter, objGearNode, intRating, objWeapons, objWeaponNodes, strForceValue);
 						objGear.Cost = "0";
 						objGear.Quantity = intQty;
@@ -251,15 +261,15 @@ namespace Chummer.Backend.Equipment
 			// If there are any Weapons that come with the Vehicle, add them.
 			if (objXmlVehicle.InnerXml.Contains("<weapons>") && blnCreateChildren)
 			{
-				XmlDocument objXmlWeaponDocument = XmlManager.Instance.Load("weapons.xml");
+				IXmlDocument objXmlWeaponDocument = XmlManager.Instance.Load("weapons.xml", fileAccess, documentFactory);
 
-				foreach (XmlNode objXmlWeapon in objXmlVehicle.SelectNodes("weapons/weapon"))
+				foreach (IXmlNode objXmlWeapon in objXmlVehicle.SelectNodes("weapons/weapon"))
 				{
 					bool blnAttached = false;
-					TreeNode objWeaponNode = new TreeNode();
+                    ITreeNode objWeaponNode = displayFactory.CreateTreeNode();
 					Weapon objWeapon = new Weapon(_objCharacter);
 
-					XmlNode objXmlWeaponNode = objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + objXmlWeapon["name"].InnerText + "\"]");
+					IXmlNode objXmlWeaponNode = objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + objXmlWeapon["name"].InnerText + "\"]");
 					objWeapon.Create(objXmlWeaponNode, _objCharacter, objWeaponNode, cmsVehicleWeapon, cmsVehicleWeaponAccessory);
 					objWeapon.Cost = 0;
 					objWeapon.VehicleMounted = true;
@@ -270,7 +280,7 @@ namespace Chummer.Backend.Equipment
 						if ((objMod.Name.Contains("Weapon Mount") || (!String.IsNullOrEmpty(objMod.WeaponMountCategories) && objMod.WeaponMountCategories.Contains(objWeapon.Category) && objMod.Weapons.Count == 0)))
 						{
 							objMod.Weapons.Add(objWeapon);
-							foreach (TreeNode objModNode in objNode.Nodes)
+							foreach (ITreeNode objModNode in objNode.Nodes)
 							{
 								if (objModNode.Tag.ToString() == objMod.InternalId)
 								{
@@ -293,7 +303,7 @@ namespace Chummer.Backend.Equipment
 							if (objMod.Name.Contains("Weapon Mount") || (!String.IsNullOrEmpty(objMod.WeaponMountCategories) && objMod.WeaponMountCategories.Contains(objWeapon.Category)))
 							{
 								objMod.Weapons.Add(objWeapon);
-								foreach (TreeNode objModNode in objNode.Nodes)
+								foreach (ITreeNode objModNode in objNode.Nodes)
 								{
 									if (objModNode.Tag.ToString() == objMod.InternalId)
 									{
@@ -312,11 +322,11 @@ namespace Chummer.Backend.Equipment
 					// Look for Weapon Accessories.
 					if (objXmlWeapon["accessories"] != null)
 					{
-						foreach (XmlNode objXmlAccessory in objXmlWeapon.SelectNodes("accessories/accessory"))
+						foreach (IXmlNode objXmlAccessory in objXmlWeapon.SelectNodes("accessories/accessory"))
 						{
-							XmlNode objXmlAccessoryNode = objXmlWeaponDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + objXmlAccessory["name"].InnerText + "\"]");
+							IXmlNode objXmlAccessoryNode = objXmlWeaponDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + objXmlAccessory["name"].InnerText + "\"]");
 							WeaponAccessory objMod = new WeaponAccessory(_objCharacter);
-							TreeNode objModNode = new TreeNode();
+                            ITreeNode objModNode = displayFactory.CreateTreeNode();
 							string strMount = "";
 							int intRating = 0;
 							if (objXmlAccessory["mount"] != null)
@@ -381,7 +391,7 @@ namespace Chummer.Backend.Equipment
 				// Use the Gear's SubClass if applicable.
 				if (objGear.GetType() == typeof(Commlink))
 				{
-					Commlink objCommlink = new Commlink(_objCharacter);
+					Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objCommlink = (Commlink)objGear;
 					objCommlink.Save(objWriter);
 				}
@@ -422,7 +432,7 @@ namespace Chummer.Backend.Equipment
 			_strName = objNode["name"].InnerText;
 			_strCategory = objNode["category"].InnerText;
 			//Some vehicles have different Offroad Handling speeds. If so, we want to split this up for use with mods and such later.
-			if (objNode["handling"].InnerText.Contains('/'))
+			if (objNode["handling"].InnerText.Contains("/"))
 			{
 				_intHandling = Convert.ToInt32(objNode["handling"].InnerText.Split('/')[0]);
 				_intOffroadHandling = Convert.ToInt32(objNode["handling"].InnerText.Split('/')[1]);
@@ -460,30 +470,30 @@ namespace Chummer.Backend.Equipment
 			objNode.TryGetField("vehiclename", out _strVehicleName);
 			objNode.TryGetField("homenode", out _blnHomeNode);
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("vehicles.xml");
-				XmlNode objVehicleNode = objXmlDocument.SelectSingleNode("/chummer/vehicles/vehicle[name = \"" + _strName + "\"]");
-				if (objVehicleNode != null)
-				{
-					if (objVehicleNode["translate"] != null)
-						_strAltName = objVehicleNode["translate"].InnerText;
-					if (objVehicleNode["altpage"] != null)
-						_strAltPage = objVehicleNode["altpage"].InnerText;
-				}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument objXmlDocument = XmlManager.Instance.Load("vehicles.xml");
+			//	XmlNode objVehicleNode = objXmlDocument.SelectSingleNode("/chummer/vehicles/vehicle[name = \"" + _strName + "\"]");
+			//	if (objVehicleNode != null)
+			//	{
+			//		if (objVehicleNode["translate"] != null)
+			//			_strAltName = objVehicleNode["translate"].InnerText;
+			//		if (objVehicleNode["altpage"] != null)
+			//			_strAltPage = objVehicleNode["altpage"].InnerText;
+			//	}
 
-				objVehicleNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-				if (objVehicleNode != null)
-				{
-					if (objVehicleNode.Attributes["translate"] != null)
-						_strAltCategory = objVehicleNode.Attributes["translate"].InnerText;
-				}
-			}
+			//	objVehicleNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
+			//	if (objVehicleNode != null)
+			//	{
+			//		if (objVehicleNode.Attributes["translate"] != null)
+			//			_strAltCategory = objVehicleNode.Attributes["translate"].InnerText;
+			//	}
+			//}
 
 			if (objNode.InnerXml.Contains("<mods>"))
 			{
-				XmlNodeList nodChildren = objNode.SelectNodes("mods/mod");
-				foreach (XmlNode nodChild in nodChildren)
+				IXmlNodeList nodChildren = objNode.SelectNodes("mods/mod");
+				foreach (IXmlNode nodChild in nodChildren)
 				{
 					VehicleMod objMod = new VehicleMod(_objCharacter);
 					objMod.Load(nodChild, blnCopy);
@@ -493,8 +503,8 @@ namespace Chummer.Backend.Equipment
 
 			if (objNode.InnerXml.Contains("<gears>"))
 			{
-				XmlNodeList nodChildren = objNode.SelectNodes("gears/gear");
-				foreach (XmlNode nodChild in nodChildren)
+				IXmlNodeList nodChildren = objNode.SelectNodes("gears/gear");
+				foreach (IXmlNode nodChild in nodChildren)
 				{
 					switch (nodChild["category"].InnerText)
 					{
@@ -502,12 +512,12 @@ namespace Chummer.Backend.Equipment
 						case "Commlink Accessories":
 						case "Cyberdecks":
 						case "Rigger Command Consoles":
-							Commlink objCommlink = new Commlink(_objCharacter);
+							Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 							objCommlink.Load(nodChild, blnCopy);
 							_lstGear.Add(objCommlink);
 							break;
 						default:
-							Gear objGear = new Gear(_objCharacter);
+							Gear objGear = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 							objGear.Load(nodChild, blnCopy);
 							_lstGear.Add(objGear);
 							break;
@@ -517,8 +527,8 @@ namespace Chummer.Backend.Equipment
 
 			if (objNode.InnerXml.Contains("<weapons>"))
 			{
-				XmlNodeList nodChildren = objNode.SelectNodes("weapons/weapon");
-				foreach (XmlNode nodChild in nodChildren)
+				IXmlNodeList nodChildren = objNode.SelectNodes("weapons/weapon");
+				foreach (IXmlNode nodChild in nodChildren)
 				{
 					Weapon objWeapon = new Weapon(_objCharacter);
 					objWeapon.Load(nodChild, blnCopy);
@@ -538,7 +548,7 @@ namespace Chummer.Backend.Equipment
 			if (objNode["locations"] != null)
 			{
 				// Locations.
-				foreach (XmlNode objXmlLocation in objNode.SelectNodes("locations/location"))
+				foreach (IXmlNode objXmlLocation in objNode.SelectNodes("locations/location"))
 				{
 					_lstLocations.Add(objXmlLocation.InnerText);
 				}
@@ -590,7 +600,7 @@ namespace Chummer.Backend.Equipment
 				// Use the Gear's SubClass if applicable.
 				if (objGear.GetType() == typeof(Commlink))
 				{
-					Commlink objCommlink = new Commlink(_objCharacter);
+					Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objCommlink = (Commlink)objGear;
 					objCommlink.Print(objWriter);
 				}
@@ -1591,12 +1601,12 @@ namespace Chummer.Backend.Equipment
 						
 						if (objMod.Bonus.InnerXml.Contains("<body>") && objMod.Bonus["body"].InnerText.Contains("Rating"))
 						{
-							// If the cost is determined by the Rating, evaluate the expression.
-							XmlDocument objXmlDocument = new XmlDocument();
-							XPathNavigator nav = objXmlDocument.CreateNavigator();
+                            // If the cost is determined by the Rating, evaluate the expression.
+                            IXmlDocument objXmlDocument = documentFactory.CreateNew();
+							IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 							string strBody = objMod.Bonus["body"].InnerText.Replace("Rating", objMod.Rating.ToString());
-							XPathExpression xprBody = nav.Compile(strBody);
+							IXPathExpression xprBody = nav.Compile(strBody);
 							intBody += Convert.ToInt32(nav.Evaluate(xprBody).ToString());
 						}
 					}
@@ -2015,7 +2025,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="lstGear">List of Gear to search.</param>
 		private Gear FindGearByName(string strName, List<Gear> lstGear)
 		{
-			Gear objReturn = new Gear(_objCharacter);
+			Gear objReturn = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Gear objGear in lstGear)
 			{
 				if (objGear.Name == strName)

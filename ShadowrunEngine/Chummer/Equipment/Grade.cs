@@ -24,7 +24,7 @@ namespace Chummer.Backend.Equipment
 		/// Load the Grade from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode)
+		public void Load(IXmlNode objNode)
 		{
 			_strName = objNode["name"].InnerText;
 			if (objNode["translate"] != null)

@@ -61,7 +61,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="objXmlMod">XmlNode to create the object from.</param>
 		/// <param name="objNode">TreeNode to populate a TreeView.</param>
 		/// <param name="intRating">Selected Rating for the Gear.</param>
-		public void Create(XmlNode objXmlMod, TreeNode objNode, int intRating)
+		public void Create(IXmlNode objXmlMod, ITreeNode objNode, int intRating)
 		{
 			_strName = objXmlMod["name"].InnerText;
 			_strCategory = objXmlMod["category"].InnerText;
@@ -207,7 +207,7 @@ namespace Chummer.Backend.Equipment
 		/// Load the VehicleMod from the XmlNode.
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
-		public void Load(XmlNode objNode, bool blnCopy = false)
+		public void Load(IXmlNode objNode, bool blnCopy = false)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;

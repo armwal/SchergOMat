@@ -1,6 +1,7 @@
+using ShadowrunEngine.ChummerInterfaces;
 using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
+//using System.Windows.Forms;
 using System.Xml;
 
 namespace Chummer.Backend.Equipment
@@ -19,7 +20,7 @@ namespace Chummer.Backend.Equipment
 		private string _strOverclocked = "None";
 
 		#region Constructor, Create, Save, Load, and Print Methods
-		public Commlink(Character objCharacter) : base(objCharacter)
+		public Commlink(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess) : base(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess)
 		{
 		}
 
@@ -30,7 +31,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="intRating">Gear Rating.</param>
 		/// <param name="blnAddImprovements">Whether or not Improvements should be added to the character.</param>
 		/// <param name="blnCreateChildren">Whether or not child Gear should be created.</param>
-		public void Create(XmlNode objXmlGear, Character objCharacter, TreeNode objNode, int intRating, bool blnAddImprovements = true, bool blnCreateChildren = true)
+		public void Create(IXmlNode objXmlGear, Character objCharacter, ITreeNode objNode, int intRating, bool blnAddImprovements = true, bool blnCreateChildren = true)
 		{
 			_strName = objXmlGear["name"].InnerText;
 			_strCategory = objXmlGear["category"].InnerText;
@@ -53,31 +54,31 @@ namespace Chummer.Backend.Equipment
 			_intDataProcessing = Convert.ToInt32(objXmlGear["dataprocessing"].InnerText);
 			_intFirewall = Convert.ToInt32(objXmlGear["firewall"].InnerText);
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("gear.xml");
-				XmlNode objGearNode = objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + _strName + "\"]");
-				if (objGearNode != null)
-				{
-					if (objGearNode["translate"] != null)
-						_strAltName = objGearNode["translate"].InnerText;
-					if (objGearNode["altpage"] != null)
-						_strAltPage = objGearNode["altpage"].InnerText;
-				}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument objXmlDocument = XmlManager.Instance.Load("gear.xml");
+			//	XmlNode objGearNode = objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + _strName + "\"]");
+			//	if (objGearNode != null)
+			//	{
+			//		if (objGearNode["translate"] != null)
+			//			_strAltName = objGearNode["translate"].InnerText;
+			//		if (objGearNode["altpage"] != null)
+			//			_strAltPage = objGearNode["altpage"].InnerText;
+			//	}
 
-				if (_strAltName.StartsWith("Stacked Focus"))
-					_strAltName = _strAltName.Replace("Stacked Focus", LanguageManager.Instance.GetString("String_StackedFocus"));
+			//	if (_strAltName.StartsWith("Stacked Focus"))
+			//		_strAltName = _strAltName.Replace("Stacked Focus", LanguageManager.Instance.GetString("String_StackedFocus"));
 
-				objGearNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-				if (objGearNode != null)
-				{
-					if (objGearNode.Attributes["translate"] != null)
-						_strAltCategory = objGearNode.Attributes["translate"].InnerText;
-				}
+			//	objGearNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
+			//	if (objGearNode != null)
+			//	{
+			//		if (objGearNode.Attributes["translate"] != null)
+			//			_strAltCategory = objGearNode.Attributes["translate"].InnerText;
+			//	}
 
-				if (_strAltCategory.StartsWith("Stacked Focus"))
-					_strAltCategory = _strAltCategory.Replace("Stacked Focus", LanguageManager.Instance.GetString("String_StackedFocus"));
-			}
+			//	if (_strAltCategory.StartsWith("Stacked Focus"))
+			//		_strAltCategory = _strAltCategory.Replace("Stacked Focus", LanguageManager.Instance.GetString("String_StackedFocus"));
+			//}
 
 			string strSource = _guiID.ToString();
 
@@ -89,9 +90,9 @@ namespace Chummer.Backend.Equipment
 			{
 				ImprovementManager objImprovementManager;
 				if (blnAddImprovements)
-					objImprovementManager = new ImprovementManager(objCharacter);
+					objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
 				else
-					objImprovementManager = new ImprovementManager(null);
+					objImprovementManager = new ImprovementManager(null, documentFactory, messageDisplay, displayFactory);
 
 				if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.Gear, strSource, objXmlGear["bonus"], false, 1, DisplayNameShort))
 				{
@@ -109,10 +110,10 @@ namespace Chummer.Backend.Equipment
 			if (objXmlGear.InnerXml.Contains("<gears>") && blnCreateChildren)
 			{
 				// Create Gear using whatever information we're given.
-				foreach (XmlNode objXmlChild in objXmlGear.SelectNodes("gears/gear"))
+				foreach (IXmlNode objXmlChild in objXmlGear.SelectNodes("gears/gear"))
 				{
-					Gear objChild = new Gear(_objCharacter);
-					TreeNode objChildNode = new TreeNode();
+					Gear objChild = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
+					ITreeNode objChildNode = displayFactory.CreateTreeNode();
 					objChild.Name = objXmlChild["name"].InnerText;
 					objChild.Category = objXmlChild["category"].InnerText;
 					objChild.Avail = "0";
@@ -128,7 +129,7 @@ namespace Chummer.Backend.Equipment
 					objNode.Expand();
 				}
 
-				XmlDocument objXmlGearDocument = XmlManager.Instance.Load("gear.xml");
+				IXmlDocument objXmlGearDocument = XmlManager.Instance.Load("gear.xml", fileAccess, documentFactory);
 				CreateChildren(objXmlGearDocument, objXmlGear, this, objNode, objCharacter, blnCreateChildren);
 			}
 
@@ -137,12 +138,12 @@ namespace Chummer.Backend.Equipment
 			{
 				if ((_strCategory == "Matrix Programs" || _strCategory == "Skillsofts" || _strCategory == "Autosofts" || _strCategory == "Autosofts, Agent" || _strCategory == "Autosofts, Drone") && objCharacter.Options.BookEnabled("UN") && !_strName.StartsWith("Suite:"))
 				{
-					XmlDocument objXmlDocument = XmlManager.Instance.Load("gear.xml");
+					IXmlDocument objXmlDocument = XmlManager.Instance.Load("gear.xml", fileAccess, documentFactory);
 
 					if (_objCharacter.Options.AutomaticCopyProtection)
 					{
-						Gear objPlugin1 = new Gear(_objCharacter);
-						TreeNode objPlugin1Node = new TreeNode();
+						Gear objPlugin1 = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
+						ITreeNode objPlugin1Node = displayFactory.CreateTreeNode();
 						objPlugin1.Create(objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"Copy Protection\"]"), objCharacter, objPlugin1Node, _intRating, null, null);
 						if (_intRating == 0)
 							objPlugin1.Rating = 1;
@@ -159,8 +160,8 @@ namespace Chummer.Backend.Equipment
 
 					if (_objCharacter.Options.AutomaticRegistration)
 					{
-						Gear objPlugin2 = new Gear(_objCharacter);
-						TreeNode objPlugin2Node = new TreeNode();
+						Gear objPlugin2 = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
+						ITreeNode objPlugin2Node = displayFactory.CreateTreeNode();
 						objPlugin2.Create(objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"Registration\"]"), objCharacter, objPlugin2Node, 0, null, null);
 						objPlugin2.Avail = "0";
 						objPlugin2.Cost = "0";
@@ -176,8 +177,8 @@ namespace Chummer.Backend.Equipment
 
 					if ((objCharacter.Metatype == "A.I." || objCharacter.MetatypeCategory == "Technocritters" || objCharacter.MetatypeCategory == "Protosapients"))
 					{
-						Gear objPlugin3 = new Gear(_objCharacter);
-						TreeNode objPlugin3Node = new TreeNode();
+						Gear objPlugin3 = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
+						ITreeNode objPlugin3Node = displayFactory.CreateTreeNode();
 						objPlugin3.Create(objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"Ergonomic\"]"), objCharacter, objPlugin3Node, 0, null, null);
 						objPlugin3.Avail = "0";
 						objPlugin3.Cost = "0";
@@ -189,8 +190,8 @@ namespace Chummer.Backend.Equipment
 						_objChildren.Add(objPlugin3);
 						objNode.Nodes.Add(objPlugin3Node);
 
-						Gear objPlugin4 = new Gear(_objCharacter);
-						TreeNode objPlugin4Node = new TreeNode();
+						Gear objPlugin4 = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
+						ITreeNode objPlugin4Node = displayFactory.CreateTreeNode();
 						objPlugin4.Create(objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"Optimization\" and category = \"Program Options\"]"), objCharacter, objPlugin4Node, _intRating, null, null);
 						if (_intRating == 0)
 							objPlugin4.Rating = 1;
@@ -216,7 +217,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="objNode">TreeNode created by copying the item.</param>
 		/// <param name="objWeapons">List of Weapons created by copying the item.</param>
 		/// <param name="objWeaponNodes">List of Weapon TreeNodes created by copying the item.</param>
-		public void Copy(Commlink objGear, TreeNode objNode, List<Weapon> objWeapons, List<TreeNode> objWeaponNodes)
+		public void Copy(Commlink objGear, ITreeNode objNode, List<Weapon> objWeapons, List<ITreeNode> objWeaponNodes)
 		{
 			_strName = objGear.Name;
 			_strCategory = objGear.Category;
@@ -258,11 +259,11 @@ namespace Chummer.Backend.Equipment
 
 			foreach (Gear objGearChild in objGear.Children)
 			{
-				TreeNode objChildNode = new TreeNode();
-				Gear objChild = new Gear(_objCharacter);
+				ITreeNode objChildNode = displayFactory.CreateTreeNode();
+				Gear objChild = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (objGearChild.GetType() == typeof(Commlink))
 				{
-					Commlink objCommlink = new Commlink(_objCharacter);
+					Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objCommlink.Copy(objGearChild, objChildNode, objWeapons, objWeaponNodes);
 					objChild = objCommlink;
 				}
@@ -314,7 +315,7 @@ namespace Chummer.Backend.Equipment
 				// Use the Gear's SubClass if applicable.
 				if (objGear.GetType() == typeof(Commlink))
 				{
-					Commlink objCommlink = new Commlink(_objCharacter);
+					Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objCommlink = (Commlink)objGear;
 					objCommlink.Save(objWriter);
 				}
@@ -363,8 +364,8 @@ namespace Chummer.Backend.Equipment
 
 			if (objNode.InnerXml.Contains("<gear>"))
 			{
-				XmlNodeList nodChildren = objNode.SelectNodes("children/gear");
-				foreach (XmlNode nodChild in nodChildren)
+				IXmlNodeList nodChildren = objNode.SelectNodes("children/gear");
+				foreach (IXmlNode nodChild in nodChildren)
 				{
 					switch (nodChild["category"].InnerText)
 					{
@@ -372,13 +373,13 @@ namespace Chummer.Backend.Equipment
 						case "Commlink Accessories":
 						case "Cyberdecks":
 						case "Rigger Command Consoles":
-							Commlink objCommlink = new Commlink(_objCharacter);
+							Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 							objCommlink.Load(nodChild, blnCopy);
 							objCommlink.Parent = this;
 							_objChildren.Add(objCommlink);
 							break;
 						default:
-							Gear objGear = new Gear(_objCharacter);
+							Gear objGear = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 							objGear.Load(nodChild, blnCopy);
 							objGear.Parent = this;
 							_objChildren.Add(objGear);
@@ -391,31 +392,31 @@ namespace Chummer.Backend.Equipment
 			objNode.TryGetField("discountedcost", out _blnDiscountCost);
 			objNode.TryGetField("active", out _blnActiveCommlink);
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("gear.xml");
-				XmlNode objGearNode = objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + _strName + "\"]");
-				if (objGearNode != null)
-				{
-					if (objGearNode["translate"] != null)
-						_strAltName = objGearNode["translate"].InnerText;
-					if (objGearNode["altpage"] != null)
-						_strAltPage = objGearNode["altpage"].InnerText;
-				}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument objXmlDocument = XmlManager.Instance.Load("gear.xml");
+			//	XmlNode objGearNode = objXmlDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + _strName + "\"]");
+			//	if (objGearNode != null)
+			//	{
+			//		if (objGearNode["translate"] != null)
+			//			_strAltName = objGearNode["translate"].InnerText;
+			//		if (objGearNode["altpage"] != null)
+			//			_strAltPage = objGearNode["altpage"].InnerText;
+			//	}
 
-				if (_strAltName.StartsWith("Stacked Focus"))
-					_strAltName = _strAltName.Replace("Stacked Focus", LanguageManager.Instance.GetString("String_StackedFocus"));
+			//	if (_strAltName.StartsWith("Stacked Focus"))
+			//		_strAltName = _strAltName.Replace("Stacked Focus", LanguageManager.Instance.GetString("String_StackedFocus"));
 
-				objGearNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-				if (objGearNode != null)
-				{
-					if (objGearNode.Attributes["translate"] != null)
-						_strAltCategory = objGearNode.Attributes["translate"].InnerText;
-				}
+			//	objGearNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
+			//	if (objGearNode != null)
+			//	{
+			//		if (objGearNode.Attributes["translate"] != null)
+			//			_strAltCategory = objGearNode.Attributes["translate"].InnerText;
+			//	}
 
-				if (_strAltCategory.StartsWith("Stacked Focus"))
-					_strAltCategory = _strAltCategory.Replace("Stacked Focus", LanguageManager.Instance.GetString("String_StackedFocus"));
-			}
+			//	if (_strAltCategory.StartsWith("Stacked Focus"))
+			//		_strAltCategory = _strAltCategory.Replace("Stacked Focus", LanguageManager.Instance.GetString("String_StackedFocus"));
+			//}
 
 			if (blnCopy)
 			{
@@ -476,7 +477,7 @@ namespace Chummer.Backend.Equipment
 					// Use the Gear's SubClass if applicable.
 					if (objGear.GetType() == typeof(Commlink))
 					{
-						Commlink objCommlink = new Commlink(_objCharacter);
+						Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						objCommlink = (Commlink)objGear;
 						objCommlink.Print(objWriter);
 					}

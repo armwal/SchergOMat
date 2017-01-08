@@ -8,6 +8,7 @@ namespace Chummer
 {
     public interface ITreeNode
     {
+        string Name { get; set; }
         string Text { get; set; }
         object Tag { get; set; }
         IContextMenuStrip ContextMenuStrip { get; set; }

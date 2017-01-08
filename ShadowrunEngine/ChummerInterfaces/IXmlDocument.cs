@@ -14,11 +14,17 @@ namespace Chummer
 
     public interface IXmlDocument
     {
+        IXmlDocument DocumentElement { get; }
+        string OuterXml { get; }
+
         void Load(string fileName);
         IXmlNode SelectSingleNode(string path);
         IXmlNodeList SelectNodes(string path);
         IXPathNavigator CreateNavigator();
         void LoadXml(string strXml);
+        IXmlNode CreateElement(string path);
+        void AppendChild(IXmlNode node);
+        IXmlNode ImportNode(IXmlNode node, bool full);
     }
 
     public interface IXPathNavigator
@@ -46,16 +52,18 @@ namespace Chummer
         string Value { get; }
         IXmlNode this[string key] { get; set; }
         IXmlNode Attributes { get; }
-        string InnerText { get; }
-        string InnerXml { get; }
+        string InnerText { get; set; }
+        string InnerXml { get; set; }
         string OuterXml { get; }
         bool HasChildNodes { get; }
         IXmlNodeList ChildNodes { get; }
+        IXmlNode ParentNode { get; }
 
         IXmlNode SelectSingleNode(string path);
         IXmlNodeList SelectNodes(string path);
 
         void AppendChild(IXmlNode node);
+        void RemoveChild(IXmlNode node);
         
         bool TryGetField<T>(string name, out T value);
         bool TryGetField<T>(string name, out T value, T onError);

@@ -1,9 +1,8 @@
+using ShadowrunEngine.ChummerInterfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
 using System.Xml;
-using System.Xml.XPath;
 
 namespace Chummer.Backend.Equipment
 {
@@ -33,18 +32,26 @@ namespace Chummer.Backend.Equipment
 		private List<Gear> _lstGear = new List<Gear>();
 		private string _strNotes = "";
 		protected string _strLocation = "";
-		private XmlNode _nodBonus;
+		private IXmlNode _nodBonus;
 		private string _strAltName = "";
 		private string _strAltCategory = "";
 		private string _strAltPage = "";
 		private bool _blnDiscountCost = false;
+        private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
+        private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
 		#region Constructor, Create, Save, Load, and Print Methods
-		public Armor(Character objCharacter)
+		public Armor(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new piece of Armor.
 			_guiID = Guid.NewGuid();
 			_objCharacter = objCharacter;
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
 		}
 
 		/// Create a Cyberware from an XmlNode and return the TreeNodes for it.
@@ -53,7 +60,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="cmsArmorMod">ContextMenuStrip to apply to Armor Mode TreeNodes.</param>
 		/// <param name="blnSkipCost">Whether or not creating the Armor should skip the Variable price dialogue (should only be used by frmSelectArmor).</param>
 		/// <param name="blnCreateChildren">Whether or not child items should be created.</param>
-		public void Create(XmlNode objXmlArmorNode, TreeNode objNode, ContextMenuStrip cmsArmorMod, int intRating, bool blnSkipCost = false, bool blnCreateChildren = true)
+		public void Create(IXmlNode objXmlArmorNode, ITreeNode objNode, IContextMenuStrip cmsArmorMod, int intRating, bool blnSkipCost = false, bool blnCreateChildren = true)
 		{
 			_strName = objXmlArmorNode["name"].InnerText;
 			_strCategory = objXmlArmorNode["category"].InnerText;
@@ -68,26 +75,6 @@ namespace Chummer.Backend.Equipment
 			_strSource = objXmlArmorNode["source"].InnerText;
 			_strPage = objXmlArmorNode["page"].InnerText;
 			_nodBonus = objXmlArmorNode["bonus"];
-
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("armor.xml");
-				XmlNode objArmorNode = objXmlDocument.SelectSingleNode("/chummer/armors/armor[name = \"" + _strName + "\"]");
-				if (objArmorNode != null)
-				{
-					if (objArmorNode["translate"] != null)
-						_strAltName = objArmorNode["translate"].InnerText;
-					if (objArmorNode["altpage"] != null)
-						_strAltPage = objArmorNode["altpage"].InnerText;
-				}
-
-				objArmorNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-				if (objNode != null)
-				{
-					if (objArmorNode.Attributes["translate"] != null)
-						_strAltCategory = objArmorNode.Attributes["translate"].InnerText;
-				}
-			}
 
 			// Check for a Variable Cost.
 			if (objXmlArmorNode["cost"].InnerText.StartsWith("Variable"))
@@ -110,29 +97,31 @@ namespace Chummer.Backend.Equipment
 
 					if (intMin != 0 || intMax != 0)
 					{
-						frmSelectNumber frmPickNumber = new frmSelectNumber();
-						if (intMax == 0)
-							intMax = 1000000;
-						frmPickNumber.Minimum = intMin;
-						frmPickNumber.Maximum = intMax;
-						frmPickNumber.Description = LanguageManager.Instance.GetString("String_SelectVariableCost").Replace("{0}", DisplayNameShort);
-						frmPickNumber.AllowCancel = false;
-						frmPickNumber.ShowDialog();
-						_strCost = frmPickNumber.SelectedValue.ToString();
+                        //frmSelectNumber frmPickNumber = new frmSelectNumber();
+                        if (intMax == 0)
+                            intMax = 1000000;
+                        //frmPickNumber.Minimum = intMin;
+                        //frmPickNumber.Maximum = intMax;
+                        //frmPickNumber.Description = LanguageManager.Instance.GetString("String_SelectVariableCost").Replace("{0}", DisplayNameShort);
+                        //frmPickNumber.AllowCancel = false;
+                        //frmPickNumber.ShowDialog();
+                        //_strCost = frmPickNumber.SelectedValue.ToString();
+                        string description = LanguageManager.Instance.GetString("String_SelectVariableCost").Replace("{0}", DisplayNameShort);
+                        _strCost = messageDisplay.PickNumber(description, intMin, intMax).ToString();
 					}
 				}
 			}
 			else if (objXmlArmorNode["cost"].InnerText.StartsWith("Rating"))
 			{
-				// If the cost is determined by the Rating, evaluate the expression.
-				XmlDocument objXmlDocument = new XmlDocument();
-				XPathNavigator nav = objXmlDocument.CreateNavigator();
+                // If the cost is determined by the Rating, evaluate the expression.
+                IXmlDocument objXmlDocument = documentFactory.CreateNew();
+				IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 				string strCost = "";
 				string strCostExpression = _strCost;
 
 				strCost = strCostExpression.Replace("Rating", _intRating.ToString());
-				XPathExpression xprCost = nav.Compile(strCost);
+				IXPathExpression xprCost = nav.Compile(strCost);
 				_strCost = nav.Evaluate(xprCost).ToString();
 			}
 			else
@@ -142,7 +131,7 @@ namespace Chummer.Backend.Equipment
 
 			if (objXmlArmorNode["bonus"] != null && !blnSkipCost)
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
 				if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.Armor, _guiID.ToString(), objXmlArmorNode["bonus"], false, 1, DisplayNameShort))
 				{
 					_guiID = Guid.Empty;
@@ -158,9 +147,9 @@ namespace Chummer.Backend.Equipment
 			// Add any Armor Mods that come with the Armor.
 			if (objXmlArmorNode["mods"] != null && blnCreateChildren)
 			{
-				XmlDocument objXmlArmorDocument = XmlManager.Instance.Load("armor.xml");
+				IXmlDocument objXmlArmorDocument = XmlManager.Instance.Load("armor.xml", fileAccess, documentFactory);
 
-				foreach (XmlNode objXmlArmorMod in objXmlArmorNode.SelectNodes("mods/name"))
+				foreach (IXmlNode objXmlArmorMod in objXmlArmorNode.SelectNodes("mods/name"))
 				{
 					intRating = 0;
 					string strForceValue = "";
@@ -169,14 +158,14 @@ namespace Chummer.Backend.Equipment
 					if (objXmlArmorMod.Attributes["select"] != null)
 						strForceValue = objXmlArmorMod.Attributes["select"].ToString();
 
-					XmlNode objXmlMod = objXmlArmorDocument.SelectSingleNode("/chummer/mods/mod[name = \"" + objXmlArmorMod.InnerText + "\"]");
+					IXmlNode objXmlMod = objXmlArmorDocument.SelectSingleNode("/chummer/mods/mod[name = \"" + objXmlArmorMod.InnerText + "\"]");
 					if (objXmlMod != null)
 					{ 
 						ArmorMod objMod = new ArmorMod(_objCharacter);
 						List<Weapon> lstWeapons = new List<Weapon>();
-						List<TreeNode> lstWeaponNodes = new List<TreeNode>();
+						List<ITreeNode> lstWeaponNodes = new List<ITreeNode>();
 
-						TreeNode objModNode = new TreeNode();
+                        ITreeNode objModNode = displayFactory.CreateTreeNode();
 
 						objMod.Create(objXmlMod, objModNode, intRating, lstWeapons, lstWeaponNodes, blnSkipCost);
 						objMod.Parent = this;
@@ -194,9 +183,9 @@ namespace Chummer.Backend.Equipment
 					{
 						ArmorMod objMod = new ArmorMod(_objCharacter);
 						List<Weapon> lstWeapons = new List<Weapon>();
-						List<TreeNode> lstWeaponNodes = new List<TreeNode>();
+						List<ITreeNode> lstWeaponNodes = new List<ITreeNode>();
 
-						TreeNode objModNode = new TreeNode();
+                        ITreeNode objModNode = displayFactory.CreateTreeNode();
 
 						objMod.Name = objXmlArmorNode["name"].InnerText;
 						objMod.Category = "Features";
@@ -221,8 +210,8 @@ namespace Chummer.Backend.Equipment
 			// Add any Gear that comes with the Armor.
 			if (objXmlArmorNode["gears"] != null && blnCreateChildren)
 			{
-				XmlDocument objXmlGearDocument = XmlManager.Instance.Load("gear.xml");
-				foreach (XmlNode objXmlArmorGear in objXmlArmorNode.SelectNodes("gears/usegear"))
+				IXmlDocument objXmlGearDocument = XmlManager.Instance.Load("gear.xml", fileAccess, documentFactory);
+				foreach (IXmlNode objXmlArmorGear in objXmlArmorNode.SelectNodes("gears/usegear"))
 				{
 						intRating = 0;
 						string strForceValue = "";
@@ -231,14 +220,14 @@ namespace Chummer.Backend.Equipment
 						if (objXmlArmorGear.Attributes["select"] != null)
 							strForceValue = objXmlArmorGear.Attributes["select"].InnerText;
 
-						XmlNode objXmlGear = objXmlGearDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + objXmlArmorGear.InnerText + "\"]");
+						IXmlNode objXmlGear = objXmlGearDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + objXmlArmorGear.InnerText + "\"]");
 						Gear objGear = new Gear(_objCharacter);
 
-						TreeNode objGearNode = new TreeNode();
+                    ITreeNode objGearNode = displayFactory.CreateTreeNode();
 						List<Weapon> lstWeapons = new List<Weapon>();
-						List<TreeNode> lstWeaponNodes = new List<TreeNode>();
+                    List<ITreeNode> lstWeaponNodes = new List<ITreeNode>();
 
-						objGear.Create(objXmlGear, _objCharacter, objGearNode, intRating, lstWeapons, lstWeaponNodes, strForceValue, false, false, !blnSkipCost);
+                    objGear.Create(objXmlGear, _objCharacter, objGearNode, intRating, lstWeapons, lstWeaponNodes, strForceValue, false, false, !blnSkipCost);
 						objGear.Capacity = "[0]";
 						objGear.ArmorCapacity = "[0]";
 						objGear.Cost = "0";
@@ -348,8 +337,8 @@ namespace Chummer.Backend.Equipment
 			catch { }
 			if (objNode.InnerXml.Contains("armormods"))
 			{
-				XmlNodeList nodMods = objNode.SelectNodes("armormods/armormod");
-					foreach (XmlNode nodMod in nodMods)
+				IXmlNodeList nodMods = objNode.SelectNodes("armormods/armormod");
+					foreach (IXmlNode nodMod in nodMods)
 					{
 						ArmorMod objMod = new ArmorMod(_objCharacter);
 						objMod.Load(nodMod, blnCopy);
@@ -359,8 +348,8 @@ namespace Chummer.Backend.Equipment
 			}
 			if (objNode.InnerXml.Contains("gears"))
 			{
-				XmlNodeList nodGears = objNode.SelectNodes("gears/gear");
-					foreach (XmlNode nodGear in nodGears)
+				IXmlNodeList nodGears = objNode.SelectNodes("gears/gear");
+					foreach (IXmlNode nodGear in nodGears)
 					{
 						switch (nodGear["category"].InnerText)
 						{
@@ -381,25 +370,25 @@ namespace Chummer.Backend.Equipment
 					}
 			}
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlArmorDocument = XmlManager.Instance.Load("armor.xml");
-				XmlNode objArmorNode = objXmlArmorDocument.SelectSingleNode("/chummer/armors/armor[name = \"" + _strName + "\"]");
-				if (objArmorNode != null)
-				{
-					if (objArmorNode["translate"] != null)
-						_strAltName = objArmorNode["translate"].InnerText;
-					if (objArmorNode["altpage"] != null)
-						_strAltPage = objArmorNode["altpage"].InnerText;
-				}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument objXmlArmorDocument = XmlManager.Instance.Load("armor.xml");
+			//	XmlNode objArmorNode = objXmlArmorDocument.SelectSingleNode("/chummer/armors/armor[name = \"" + _strName + "\"]");
+			//	if (objArmorNode != null)
+			//	{
+			//		if (objArmorNode["translate"] != null)
+			//			_strAltName = objArmorNode["translate"].InnerText;
+			//		if (objArmorNode["altpage"] != null)
+			//			_strAltPage = objArmorNode["altpage"].InnerText;
+			//	}
 
-				objArmorNode = objXmlArmorDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-				if (objArmorNode != null)
-				{
-					if (objArmorNode.Attributes["translate"] != null)
-						_strAltCategory = objArmorNode.Attributes["translate"].InnerText;
-				}
-			}
+			//	objArmorNode = objXmlArmorDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
+			//	if (objArmorNode != null)
+			//	{
+			//		if (objArmorNode.Attributes["translate"] != null)
+			//			_strAltCategory = objArmorNode.Attributes["translate"].InnerText;
+			//	}
+			//}
 
 			if (blnCopy)
 			{
@@ -487,7 +476,7 @@ namespace Chummer.Backend.Equipment
 		/// <summary>
 		/// Bonus node from the XML file.
 		/// </summary>
-		public XmlNode Bonus
+		public IXmlNode Bonus
 		{
 			get
 			{
@@ -642,16 +631,16 @@ namespace Chummer.Backend.Equipment
 			{
 				if (_strArmorCapacity.Contains("Rating"))
 				{
-					// If the Capaicty is determined by the Rating, evaluate the expression.
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
+                    // If the Capaicty is determined by the Rating, evaluate the expression.
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+					IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 					// XPathExpression cannot evaluate while there are square brackets, so remove them if necessary.
-					bool blnSquareBrackets = _strArmorCapacity.Contains('[');
+					bool blnSquareBrackets = _strArmorCapacity.Contains("[");
 					string strCapacity = _strArmorCapacity;
 					if (blnSquareBrackets)
 						strCapacity = strCapacity.Substring(1, strCapacity.Length - 2);
-					XPathExpression xprCapacity = nav.Compile(strCapacity.Replace("Rating", _intRating.ToString()));
+					IXPathExpression xprCapacity = nav.Compile(strCapacity.Replace("Rating", _intRating.ToString()));
 
 					string strReturn = nav.Evaluate(xprCapacity).ToString();
 					if (blnSquareBrackets)
@@ -694,16 +683,16 @@ namespace Chummer.Backend.Equipment
 			{
 				if (_strCost.Contains("Rating"))
 				{
-					// If the Capaicty is determined by the Rating, evaluate the expression.
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
+                    // If the Capaicty is determined by the Rating, evaluate the expression.
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+					IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 					// XPathExpression cannot evaluate while there are square brackets, so remove them if necessary.
-					bool blnSquareBrackets = _strArmorCapacity.Contains('[');
+					bool blnSquareBrackets = _strArmorCapacity.Contains("[");
 					string strCapacity = _strArmorCapacity;
 					if (blnSquareBrackets)
 						strCapacity = strCapacity.Substring(1, strCapacity.Length - 2);
-					XPathExpression xprCapacity = nav.Compile(strCapacity.Replace("Rating", _intRating.ToString()));
+					IXPathExpression xprCapacity = nav.Compile(strCapacity.Replace("Rating", _intRating.ToString()));
 
 					string strReturn = nav.Evaluate(xprCapacity).ToString();
 					if (blnSquareBrackets)
@@ -858,15 +847,15 @@ namespace Chummer.Backend.Equipment
 				int intTotalCost = 0;
 				if (_strCost.Contains("Rating"))
 				{
-					// If the cost is determined by the Rating, evaluate the expression.
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
+                    // If the cost is determined by the Rating, evaluate the expression.
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+					IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 					string strCost = "";
 					string strCostExpression = _strCost;
 
 					strCost = strCostExpression.Replace("Rating", _intRating.ToString());
-					XPathExpression xprCost = nav.Compile(strCost);
+					IXPathExpression xprCost = nav.Compile(strCost);
 					intTotalCost = Convert.ToInt32(nav.Evaluate(xprCost).ToString());
 				}
 				else
@@ -898,15 +887,15 @@ namespace Chummer.Backend.Equipment
 				int intTotalCost = 0;
 				if (_strCost.Contains("Rating"))
 				{
-					// If the cost is determined by the Rating, evaluate the expression.
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
+                    // If the cost is determined by the Rating, evaluate the expression.
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+					IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 					string strCost = "";
 					string strCostExpression = _strCost;
 
 					strCost = strCostExpression.Replace("Rating", _intRating.ToString());
-					XPathExpression xprCost = nav.Compile(strCost);
+					IXPathExpression xprCost = nav.Compile(strCost);
 					intTotalCost = Convert.ToInt32(nav.Evaluate(xprCost).ToString());
 				}
 				else
@@ -1032,9 +1021,9 @@ namespace Chummer.Backend.Equipment
 					{
 						if (objChild.Avail.Contains("Rating"))
 						{
-							// If the cost is determined by the Rating, evaluate the expression.
-							XmlDocument objXmlDocument = new XmlDocument();
-							XPathNavigator nav = objXmlDocument.CreateNavigator();
+                            // If the cost is determined by the Rating, evaluate the expression.
+                            IXmlDocument objXmlDocument = documentFactory.CreateNew();
+							IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 							string strAvailability = "";
 							string strAvailExpression = (objChild.Avail);
@@ -1048,7 +1037,7 @@ namespace Chummer.Backend.Equipment
 							strAvailability = strAvailability.Replace("F", string.Empty).Replace("R", string.Empty);
 							if (strAvailability.StartsWith("+"))
 								strAvailability = strAvailability.Substring(1);
-							XPathExpression xprCost = nav.Compile(strAvailability);
+							IXPathExpression xprCost = nav.Compile(strAvailability);
 							intAvail += Convert.ToInt32(nav.Evaluate(xprCost));
 						}
 						else
@@ -1127,9 +1116,9 @@ namespace Chummer.Backend.Equipment
 				{
 					if (objArmorMod.ArmorCapacity.StartsWith("-") || objArmorMod.ArmorCapacity.StartsWith("[-"))
 					{
-						// If the Capaicty is determined by the Capacity of the parent, evaluate the expression. Generally used for providing a percentage of armour capacity as bonus, ie YNT Softweave.
-						XmlDocument objXmlDocument = new XmlDocument();
-						XPathNavigator nav = objXmlDocument.CreateNavigator();
+                        // If the Capaicty is determined by the Capacity of the parent, evaluate the expression. Generally used for providing a percentage of armour capacity as bonus, ie YNT Softweave.
+                        IXmlDocument objXmlDocument = documentFactory.CreateNew();
+						IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 						// XPathExpression cannot evaluate while there are square brackets, so remove them if necessary.
 						string strCapacity = objArmorMod.ArmorCapacity;
@@ -1138,7 +1127,7 @@ namespace Chummer.Backend.Equipment
 						strCapacity = strCapacity.Replace("]", "");
 						strCapacity = strCapacity.Replace("Capacity", _strArmorCapacity);
 						strCapacity = strCapacity.Replace("Rating", _intRating.ToString());
-						XPathExpression xprCapacity = nav.Compile(strCapacity);
+						IXPathExpression xprCapacity = nav.Compile(strCapacity);
 
 						strCapacity = nav.Evaluate(xprCapacity).ToString();
 						strCapacity = Math.Ceiling(Convert.ToDecimal(strCapacity) + Convert.ToDecimal(strReturn)).ToString();
