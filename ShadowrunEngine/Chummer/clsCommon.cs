@@ -16,15 +16,16 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
- using System.Linq;
- using Chummer.Backend.Equipment;
+using System.Linq;
+using Chummer.Backend.Equipment;
+using ShadowrunEngine.ChummerInterfaces;
 
 namespace Chummer
 {
@@ -32,17 +33,28 @@ namespace Chummer
 	{
 		#region Constructor and Instance
 		private Character _objCharacter;
+        private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
-        public CommonFunctions(IDisplayFactory displayFactory)
+        public CommonFunctions(IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
         {
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
         
-        public CommonFunctions(Character objCharacter)
+        public CommonFunctions(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			_objCharacter = objCharacter;
-		}
+
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
+        }
 
         public enum LogType
         {
@@ -63,7 +75,7 @@ namespace Chummer
 		/// <param name="lstGear">List of Gear to search.</param>
 		public Gear FindGear(string strGuid, List<Gear> lstGear)
 		{
-			Gear objReturn = new Gear(_objCharacter);
+			Gear objReturn = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Gear objGear in lstGear)
 			{
 				if (objGear.InternalId == strGuid)
@@ -91,7 +103,7 @@ namespace Chummer
 		/// <param name="lstCommlink">List of Commlinks to search.</param>
 		public Commlink FindCommlink(string strGuid, List<Gear> lstCommlink)
 		{
-			Commlink objReturn = new Commlink(_objCharacter);
+			Commlink objReturn = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			List<Gear> lstCheckGear = new List<Gear>();
 
 			foreach (Gear objGear in lstCommlink)
@@ -129,7 +141,7 @@ namespace Chummer
 		/// <param name="lstGear">List of Gear to search.</param>
 		public Gear FindGearByWeaponID(string strGuid, List<Gear> lstGear)
 		{
-			Gear objReturn = new Gear(_objCharacter);
+			Gear objReturn = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Gear objGear in lstGear)
 			{
 				if (objGear.WeaponID == strGuid)
@@ -159,7 +171,7 @@ namespace Chummer
 		/// <param name="objFoundVehicle">Vehicle that the Gear was found in.</param>
 		public Gear FindVehicleGear(string strGuid, List<Vehicle> lstVehicles, out Vehicle objFoundVehicle)
 		{
-			Gear objReturn = new Gear(_objCharacter);
+			Gear objReturn = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Vehicle objVehicle in lstVehicles)
 			{
 				objReturn = FindGear(strGuid, objVehicle.Gear);
@@ -177,7 +189,7 @@ namespace Chummer
 				foreach (VehicleMod objMod in objVehicle.Mods)
 				{
 					// Weapon Accessories.
-					WeaponAccessory objAccessory = new WeaponAccessory(_objCharacter);
+					WeaponAccessory objAccessory = new WeaponAccessory(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objReturn = FindWeaponGear(strGuid, objMod.Weapons, out objAccessory);
 
 					if (objReturn != null)
@@ -190,7 +202,7 @@ namespace Chummer
 					}
 
 					// Cyberware.
-					Cyberware objCyberware = new Cyberware(_objCharacter);
+					Cyberware objCyberware = new Cyberware(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objReturn = FindCyberwareGear(strGuid, objMod.Cyberware, out objCyberware);
 
 					if (objReturn != null)
@@ -257,7 +269,7 @@ namespace Chummer
 		/// <param name="objFoundVehicle">Vehicle that the Weapon was found in.</param>
 		public Weapon FindVehicleWeapon(string strGuid, List<Vehicle> lstVehicles, out Vehicle objFoundVehicle)
 		{
-			Weapon objReturn = new Weapon(_objCharacter);
+			Weapon objReturn = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Vehicle objVehicle in lstVehicles)
 			{
 				objReturn = FindWeapon(strGuid, objVehicle.Weapons);
@@ -289,7 +301,7 @@ namespace Chummer
 		/// <param name="lstVehicles">List of Vehicles to search.</param>
 		public WeaponAccessory FindVehicleWeaponAccessory(string strGuid, List<Vehicle> lstVehicles)
 		{
-			WeaponAccessory objReturn = new WeaponAccessory(_objCharacter);
+			WeaponAccessory objReturn = new WeaponAccessory(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Vehicle objVehicle in lstVehicles)
 			{
 				objReturn = FindWeaponAccessory(strGuid, objVehicle.Weapons);
@@ -314,7 +326,7 @@ namespace Chummer
 		/// <param name="lstVehicles">List of Vehicles to search.</param>
 		public Cyberware FindVehicleCyberware(string strGuid, List<Vehicle> lstVehicles)
 		{
-			Cyberware objReturn = new Cyberware(_objCharacter);
+			Cyberware objReturn = new Cyberware(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Vehicle objVehicle in lstVehicles)
 			{
 				foreach (VehicleMod objMod in objVehicle.Mods)
@@ -336,7 +348,7 @@ namespace Chummer
 		/// <param name="objFoundArmor">Armor that the Gear was found in.</param>
 		public Gear FindArmorGear(string strGuid, List<Armor> lstArmors, out Armor objFoundArmor)
 		{
-			Gear objReturn = new Gear(_objCharacter);
+			Gear objReturn = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Armor objArmor in lstArmors)
 			{
 				objReturn = FindGear(strGuid, objArmor.Gear);
@@ -398,7 +410,7 @@ namespace Chummer
 		/// <param name="objFoundCyberware">Cyberware that the Gear was found in.</param>
 		public Gear FindCyberwareGear(string strGuid, List<Cyberware> lstCyberware, out Cyberware objFoundCyberware)
 		{
-			Gear objReturn = new Gear(_objCharacter);
+			Gear objReturn = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Cyberware objCyberware in lstCyberware)
 			{
 				objReturn = FindGear(strGuid, objCyberware.Gear);
@@ -437,7 +449,7 @@ namespace Chummer
 		/// <param name="lstWeaopns">List of Weapons to search.</param>
 		public Weapon FindWeapon(string strGuid, List<Weapon> lstWeaopns)
 		{
-			Weapon objReturn = new Weapon(_objCharacter);
+			Weapon objReturn = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Weapon objWeapon in lstWeaopns)
 			{
 				if (objWeapon.InternalId == strGuid)
@@ -459,7 +471,7 @@ namespace Chummer
 		/// <param name="lstWeapons">List of Weapons to search.</param>
 		public WeaponAccessory FindWeaponAccessory(string strGuid, List<Weapon> lstWeapons)
 		{
-			WeaponAccessory objReturn = new WeaponAccessory(_objCharacter);
+			WeaponAccessory objReturn = new WeaponAccessory(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Weapon objWeapon in lstWeapons)
 			{
 				foreach (WeaponAccessory objAccessory in objWeapon.WeaponAccessories)
@@ -485,7 +497,7 @@ namespace Chummer
 		/// <param name="objFoundAccessory">WeaponAccessory that the Gear was found in.</param>
 		public Gear FindWeaponGear(string strGuid, List<Weapon> lstWeapons, out WeaponAccessory objFoundAccessory)
 		{
-			Gear objReturn = new Gear(_objCharacter);
+			Gear objReturn = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Weapon objWeapon in lstWeapons)
 			{
 				foreach (WeaponAccessory objAccessory in objWeapon.WeaponAccessories)
@@ -556,7 +568,7 @@ namespace Chummer
 		/// <param name="lstCyberware">List of Cyberware to search.</param>
 		public Cyberware FindCyberware(string strGuid, List<Cyberware> lstCyberware)
 		{
-			Cyberware objReturn = new Cyberware(_objCharacter);
+			Cyberware objReturn = new Cyberware(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			foreach (Cyberware objCyberware in lstCyberware)
 			{
 				if (objCyberware.InternalId == strGuid)
@@ -901,7 +913,7 @@ namespace Chummer
 				treWeapons.Nodes.Remove(objRemoveNode);
 
 				// Remove the Weapon from the Character.
-				Weapon objRemoveWeapon = new Weapon(_objCharacter);
+				Weapon objRemoveWeapon = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				foreach (Weapon objWeapon in _objCharacter.Weapons)
 				{
 					if (objWeapon.InternalId == objGear.WeaponID)
@@ -977,7 +989,7 @@ namespace Chummer
 				}
 				
 				// Remove the Weapon from the Vehicle.
-				Weapon objRemoveWeapon = new Weapon(_objCharacter);
+				Weapon objRemoveWeapon = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				foreach (Weapon objWeapon in objVehicle.Weapons)
 				{
 					if (objWeapon.InternalId == objGear.WeaponID)

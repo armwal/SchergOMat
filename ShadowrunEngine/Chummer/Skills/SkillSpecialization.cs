@@ -21,15 +21,15 @@ namespace Chummer
 
 		static SkillSpecialization()
 		{
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument document = XmlManager.Instance.Load("skills.xml");
-				XmlNodeList specList = document.SelectNodes("/chummer/*/skill/specs/spec");
-				foreach (XmlNode node in specList.Cast<XmlNode>().Where(node => node.Attributes?["translate"] != null))
-				{
-					_translator.Add(node.InnerText, node.Attributes["translate"]?.InnerText);
-				}
-			}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument document = XmlManager.Instance.Load("skills.xml");
+			//	XmlNodeList specList = document.SelectNodes("/chummer/*/skill/specs/spec");
+			//	foreach (XmlNode node in specList.Cast<XmlNode>().Where(node => node.Attributes?["translate"] != null))
+			//	{
+			//		_translator.Add(node.InnerText, node.Attributes["translate"]?.InnerText);
+			//	}
+			//}
 		}
 
 		public SkillSpecialization(string strName, bool free)
@@ -43,12 +43,12 @@ namespace Chummer
 		/// Save the object's XML to the XmlWriter.
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Save(XmlTextWriter objWriter)
+		public void Save(IXmlWriter objWriter)
 		{
 			objWriter.WriteStartElement("spec");
 			objWriter.WriteElementString("guid", _guiID.ToString());
 			objWriter.WriteElementString("name", _name);
-			if(_translated != null) objWriter.WriteElementString(GlobalOptions.Instance.Language, _translated);
+			if(_translated != null) objWriter.WriteElementString(GlobalOptions.Language, _translated);
 			if(_free) objWriter.WriteElementString("free", "");
 			objWriter.WriteEndElement();
 		}
@@ -57,12 +57,12 @@ namespace Chummer
 		/// Re-create a saved SkillSpecialization from an XmlNode;
 		/// </summary>
 		/// <param name = "objNode" > XmlNode to load.</param>
-		public static SkillSpecialization Load(XmlNode objNode)
+		public static SkillSpecialization Load(IXmlNode objNode)
 		{
 			return new SkillSpecialization(objNode["name"].InnerText, objNode["free"] != null)
 			{
 				_guiID = Guid.Parse(objNode["guid"].InnerText),
-				_translated = objNode[GlobalOptions.Instance.Language]?.InnerText
+				_translated = objNode[GlobalOptions.Language]?.InnerText
 			};
 		}
 
@@ -70,7 +70,7 @@ namespace Chummer
 
 		/// </summary>
 		/// <param name="objWriter">XmlTextWriter to write with.</param>
-		public void Print(XmlTextWriter objWriter)
+		public void Print(IXmlWriter objWriter)
 		{
 
 			objWriter.WriteStartElement("skillspecialization");

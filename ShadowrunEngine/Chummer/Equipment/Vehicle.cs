@@ -181,7 +181,7 @@ namespace Chummer.Backend.Equipment
 					if (objXmlMod != null)
 					{
                         ITreeNode objModNode = displayFactory.CreateTreeNode();
-						VehicleMod objMod = new VehicleMod(_objCharacter);
+						VehicleMod objMod = new VehicleMod(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						int intRating = 0;
 
 						if (objXmlVehicleMod.Attributes["rating"] != null)
@@ -267,7 +267,7 @@ namespace Chummer.Backend.Equipment
 				{
 					bool blnAttached = false;
                     ITreeNode objWeaponNode = displayFactory.CreateTreeNode();
-					Weapon objWeapon = new Weapon(_objCharacter);
+					Weapon objWeapon = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 					IXmlNode objXmlWeaponNode = objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + objXmlWeapon["name"].InnerText + "\"]");
 					objWeapon.Create(objXmlWeaponNode, _objCharacter, objWeaponNode, cmsVehicleWeapon, cmsVehicleWeaponAccessory);
@@ -325,7 +325,7 @@ namespace Chummer.Backend.Equipment
 						foreach (IXmlNode objXmlAccessory in objXmlWeapon.SelectNodes("accessories/accessory"))
 						{
 							IXmlNode objXmlAccessoryNode = objXmlWeaponDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + objXmlAccessory["name"].InnerText + "\"]");
-							WeaponAccessory objMod = new WeaponAccessory(_objCharacter);
+							WeaponAccessory objMod = new WeaponAccessory(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
                             ITreeNode objModNode = displayFactory.CreateTreeNode();
 							string strMount = "";
 							int intRating = 0;
@@ -495,7 +495,7 @@ namespace Chummer.Backend.Equipment
 				IXmlNodeList nodChildren = objNode.SelectNodes("mods/mod");
 				foreach (IXmlNode nodChild in nodChildren)
 				{
-					VehicleMod objMod = new VehicleMod(_objCharacter);
+					VehicleMod objMod = new VehicleMod(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objMod.Load(nodChild, blnCopy);
 					_lstVehicleMods.Add(objMod);
 				}
@@ -530,7 +530,7 @@ namespace Chummer.Backend.Equipment
 				IXmlNodeList nodChildren = objNode.SelectNodes("weapons/weapon");
 				foreach (IXmlNode nodChild in nodChildren)
 				{
-					Weapon objWeapon = new Weapon(_objCharacter);
+					Weapon objWeapon = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objWeapon.Load(nodChild, blnCopy);
 					objWeapon.VehicleMounted = true;
 					if (objWeapon.UnderbarrelWeapons.Count > 0)

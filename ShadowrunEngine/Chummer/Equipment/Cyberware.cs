@@ -263,7 +263,7 @@ namespace Chummer.Backend.Equipment
 					IXmlNode objXmlWeapon = objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + objXmlAddWeapon.InnerText + "\"]"); // and starts-with(category, \"Cyberware\")]");
 
                     ITreeNode objGearWeaponNode = displayFactory.CreateTreeNode();
-					Weapon objGearWeapon = new Weapon(objCharacter);
+					Weapon objGearWeapon = new Weapon(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objGearWeapon.Create(objXmlWeapon, objCharacter, objGearWeaponNode, null, null);
 					//objGearWeaponNode.ForeColor = SystemColors.GrayText;
 					objWeaponNodes.Add(objGearWeaponNode);
@@ -1975,7 +1975,7 @@ namespace Chummer.Backend.Equipment
 				}
                 if (_blnVehicleMounted)
                 {
-                    CommonFunctions objFunctions = new CommonFunctions(displayFactory);
+                    CommonFunctions objFunctions = new CommonFunctions(documentFactory, messageDisplay, displayFactory, fileAccess);
                     Vehicle objParentVehicle = objFunctions.FindVehicle(_objParent.InternalId, _objCharacter.Vehicles);
                     return Math.Min(intAttribute + intBonus, objParentVehicle.TotalBody*2);
                 }
@@ -2040,7 +2040,7 @@ namespace Chummer.Backend.Equipment
 
                 if (_blnVehicleMounted)
                 {
-                    CommonFunctions objFunctions = new CommonFunctions(displayFactory);
+                    CommonFunctions objFunctions = new CommonFunctions(documentFactory, messageDisplay, displayFactory, fileAccess);
                     Vehicle objParentVehicle = objFunctions.FindVehicle(_objParent.InternalId, _objCharacter.Vehicles);
                     return Math.Min(intAttribute + intBonus, objParentVehicle.Pilot*2);
                 }

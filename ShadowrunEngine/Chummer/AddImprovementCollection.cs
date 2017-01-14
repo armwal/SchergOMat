@@ -1119,7 +1119,7 @@ namespace Chummer.Classes
 			SelectedValue = name;
 
 
-			KnowledgeSkill skill = new KnowledgeSkill(_objCharacter, name);
+			KnowledgeSkill skill = new KnowledgeSkill(_objCharacter, name, fileAccess, documentFactory);
 
 			bool knowsoft = bonusNode.TryCheckValue("require", "skilljack");
 
@@ -3305,7 +3305,7 @@ namespace Chummer.Classes
 			//Log.Info("hardwire = " + bonusNode.OuterXml.ToString());
 			//Log.Info("Calling CreateImprovement");
 			Cyberware objCyberware = new Cyberware(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
-			CommonFunctions _objFunctions = new CommonFunctions(displayFactory);
+			CommonFunctions _objFunctions = new CommonFunctions(documentFactory, messageDisplay, displayFactory, fileAccess);
 			objCyberware = _objFunctions.FindCyberware(SourceName, _objCharacter.Cyberware);
 			if (objCyberware == null)
 			{

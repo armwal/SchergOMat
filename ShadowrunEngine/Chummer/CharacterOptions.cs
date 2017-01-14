@@ -1,3 +1,4 @@
+using ShadowrunEngine.ChummerInterfaces;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -176,19 +177,18 @@ namespace Chummer
 
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
-        private string startupPath;
+        private IFileAccess fileAccess;
 
 	    #region Initialization, Save, and Load Methods
-		public CharacterOptions(Character character, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, string startupPath)
+		public CharacterOptions(Character character, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IFileAccess fileAccess)
 		{
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
-            this.startupPath = startupPath;
 
             _objBookDoc = documentFactory.CreateNew();
 			_character = character;
 			// Create the settings directory if it does not exist.
-			string settingsDirectoryPath = Path.Combine(startupPath, "settings");
+			string settingsDirectoryPath = fileAccess.GetPathFromStartup("settings");
 			//if (!Directory.Exists(settingsDirectoryPath))
 			//	Directory.CreateDirectory(settingsDirectoryPath);
 
@@ -206,7 +206,7 @@ namespace Chummer
 			//LanguageManager.Instance.Load(GlobalOptions.Instance.Language, this);
 
 			// Load the book information.
-			_objBookDoc = XmlManager.Instance.Load("books.xml");
+			_objBookDoc = XmlManager.Instance.Load("books.xml", fileAccess, documentFactory);
 		}
 
 		/// <summary>
@@ -558,7 +558,8 @@ namespace Chummer
 		public bool Load(string strFileName)
 		{
 			_strFileName = strFileName;
-			string strFilePath = Path.Combine(startupPath, "settings", _strFileName);
+			string strFilePath = Path.Combine("settings", _strFileName);
+            strFileName = fileAccess.GetPathFromStartup(strFilePath);
             IXmlDocument objXmlDocument = documentFactory.CreateNew();
 			try
 			{

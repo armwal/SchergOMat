@@ -7,6 +7,7 @@ using System.Xml;
 using Chummer.Backend;
 using Chummer;
 using System.Collections.ObjectModel;
+using ShadowrunEngine.ChummerInterfaces;
 
 namespace Chummer.Skills
 {
@@ -28,9 +29,12 @@ namespace Chummer.Skills
 		private bool _blnSchoolOfHardKnocks;
 		private bool _blnTechSchool;
 		private bool _blnLinguist;
-		private Dictionary<Guid, Skill> _skillValueBackup = new Dictionary<Guid, Skill>(); 
+		private Dictionary<Guid, Skill> _skillValueBackup = new Dictionary<Guid, Skill>();
 
-		public SkillsSection(Character character)
+        private IXmlDocumentFactory documentFactory;
+        private IFileAccess fileAccess;
+
+        public SkillsSection(Character character, IFileAccess fileAccess, IXmlDocumentFactory documentFactory)
 		{
 			_character = character;
 			_character.LOG.PropertyChanged += (sender, args) => KnoChanged();
@@ -38,7 +42,9 @@ namespace Chummer.Skills
 
 			_character.ImprovementEvent += CharacterOnImprovementEvent;
 
-		}
+            this.documentFactory = documentFactory;
+            this.fileAccess = fileAccess;
+        }
 
 		private void CharacterOnImprovementEvent(List<Improvement> improvements, ImprovementManager improvementManager)
 		{
@@ -87,7 +93,7 @@ namespace Chummer.Skills
 
 					if (_character.Created && skill.LearnedRating > 0)
 					{
-						KnowledgeSkill kno = new KnowledgeSkill(_character)
+						KnowledgeSkill kno = new KnowledgeSkill(_character, fileAccess, documentFactory)
 						{
 							Type = skill.Name == "Arcana" ? "Academic" : "Professional",
 							WriteableName = skill.Name,
@@ -108,13 +114,13 @@ namespace Chummer.Skills
 			if (!legacy)
 			{
 				Timekeeper.Start("load_char_skills_groups");
-				(from XmlNode node in skillNode.SelectNodes("groups/group") let @group = SkillGroup.Load(_character, node) where @group != null orderby @group.DisplayName descending select @group).ForEach(x => SkillGroups.Add(x));
+				(from IXmlNode node in skillNode.SelectNodes("groups/group") let @group = SkillGroup.Load(_character, node) where @group != null orderby @group.DisplayName descending select @group).ForEach(x => SkillGroups.Add(x));
 
 				Timekeeper.Finish("load_char_skills_groups");
 
 				Timekeeper.Start("load_char_skills_normal");
 				//Load skills. Because sorting a ObservableCollection is complicated we use a temporery normal list
-				List<Skill> loadingSkills = (from XmlNode node in skillNode.SelectNodes("skills/skill") let skill = Skill.Load(_character, node) where skill != null select skill).ToList();
+				List<Skill> loadingSkills = (from IXmlNode node in skillNode.SelectNodes("skills/skill") let skill = Skill.Load(_character, node) where skill != null select skill).ToList();
 
 				loadingSkills.Sort(CompareSkills);
 
@@ -123,10 +129,10 @@ namespace Chummer.Skills
 				{
 					_skills.Add(skill);
 				}
-				Timekeeper.Finish("load_char_skills_normal");
+                Timekeeper.Finish("load_char_skills_normal");
 
-				Timekeeper.Start("load_char_skills_kno");
-				List<KnowledgeSkill> knoSkills = (from XmlNode node in skillNode.SelectNodes("knoskills/skill") let skill = (KnowledgeSkill) Skill.Load(_character, node) where skill != null select skill).ToList();
+                Timekeeper.Start("load_char_skills_kno");
+				List<KnowledgeSkill> knoSkills = (from IXmlNode node in skillNode.SelectNodes("knoskills/skill") let skill = (KnowledgeSkill) Skill.Load(_character, node) where skill != null select skill).ToList();
 
 
 				foreach (KnowledgeSkill skill in knoSkills)
@@ -137,19 +143,19 @@ namespace Chummer.Skills
 
 				Timekeeper.Start("load_char_knowsoft_buffer");
 				// Knowsoft Buffer.
-				XmlNodeList objXmlKnowsoftBuffer = skillNode.SelectNodes("skilljackknowledgeskills/skill");
-				foreach (XmlNode objXmlSkill in objXmlKnowsoftBuffer)
+				IXmlNodeList objXmlKnowsoftBuffer = skillNode.SelectNodes("skilljackknowledgeskills/skill");
+				foreach (IXmlNode objXmlSkill in objXmlKnowsoftBuffer)
 				{
 					string strName = objXmlSkill["name"].InnerText;
-					KnowsoftSkills.Add(new KnowledgeSkill(_character, strName));
+					KnowsoftSkills.Add(new KnowledgeSkill(_character, strName, fileAccess, documentFactory));
 				}
 				Timekeeper.Finish("load_char_knowsoft_buffer");
 			}
 			else
 			{
-				XmlNodeList oldskills = skillNode.SelectNodes("skills/skill");
+				IXmlNodeList oldskills = skillNode.SelectNodes("skills/skill");
 
-				List<Skill> tempoerySkillList = (from XmlNode node in oldskills let skill = Skill.LegacyLoad(_character, node) where skill != null select skill).ToList();
+				List<Skill> tempoerySkillList = (from IXmlNode node in oldskills let skill = Skill.LegacyLoad(_character, node) where skill != null select skill).ToList();
 
 				List<Skill> unsoredSkills = new List<Skill>();
 
@@ -228,7 +234,7 @@ namespace Chummer.Skills
 			Timekeeper.Finish("load_char_skills");
 		}
 
-		private void UpdateUndoList(XmlNode skillNode)
+		private void UpdateUndoList(IXmlNode skillNode)
 		{
 			//Hacky way of converting Expense entries to guid based skill identification
 			//specs allready did?
@@ -252,7 +258,7 @@ namespace Chummer.Skills
 			UpdateUndoSpecific(skillNode.OwnerDocument, groups, new[] { KarmaExpenseType.ImproveSkillGroup });
 		}
 
-		private static void UpdateUndoSpecific(XmlDocument doc, Dictionary<string, Guid> map, KarmaExpenseType[] typesRequreingConverting)
+		private static void UpdateUndoSpecific(IXmlDocument doc, Dictionary<string, Guid> map, KarmaExpenseType[] typesRequreingConverting)
 		{
 			//Build a crazy xpath to get everything we want to convert
 
@@ -260,7 +266,7 @@ namespace Chummer.Skills
 				$"/character/expenses/expense[type = \'Karma\']/undo[{string.Join(" or ", typesRequreingConverting.Select(x => $"karmatype = '{x}'"))}]/objectid";
 
 			//Find everything
-			XmlNodeList nodesToChange = doc.SelectNodes(xpath);
+			IXmlNodeList nodesToChange = doc.SelectNodes(xpath);
 
 			for (var i = 0; i < nodesToChange.Count; i++)
 			{
@@ -270,7 +276,7 @@ namespace Chummer.Skills
 				}
 				catch (Exception ex)
 				{
-					Log.Error(new object[] { "Failed to convert", ex, nodesToChange[i].ParentNode.OuterXml});
+					//Log.Error(new object[] { "Failed to convert", ex, nodesToChange[i].ParentNode.OuterXml});
 
 					nodesToChange[i].InnerText = new Guid().ToString();  //This creates 00.. guid in default formatting
 				}
@@ -575,19 +581,19 @@ namespace Chummer.Skills
 			}
 		}
 
-		private static IEnumerable<Skill> GetSkillList(Character c, FilterOptions filter)
+		private IEnumerable<Skill> GetSkillList(Character c, FilterOptions filter)
 		{
 			//TODO less retarded way please
 			List<Skill> b = new List<Skill>();
 			// Load the Skills information.
-			XmlDocument objXmlDocument = XmlManager.Instance.Load("skills.xml");
+			IXmlDocument objXmlDocument = XmlManager.Instance.Load("skills.xml", fileAccess, documentFactory);
 
 			// Populate the Skills list.
-			XmlNodeList objXmlSkillList = objXmlDocument.SelectNodes("/chummer/skills/skill[not(exotic) and (" + c.Options.BookXPath() + ")" + SkillFilter(filter) + "]");
+			IXmlNodeList objXmlSkillList = objXmlDocument.SelectNodes("/chummer/skills/skill[not(exotic) and (" + c.Options.BookXPath() + ")" + SkillFilter(filter) + "]");
 
 			// First pass, build up a list of all of the Skills so we can sort them in alphabetical order for the current language.
 			List<ListItem> lstSkillOrder = new List<ListItem>();
-			foreach (XmlNode objXmlSkill in objXmlSkillList)
+			foreach (IXmlNode objXmlSkill in objXmlSkillList)
 			{
 				ListItem objSkill = new ListItem();
 				objSkill.Value = objXmlSkill["name"].InnerText;
@@ -603,7 +609,7 @@ namespace Chummer.Skills
 			// Second pass, retrieve the Skills in the order they're presented in the list.
 			foreach (ListItem objItem in lstSkillOrder)
 			{
-				XmlNode objXmlSkill = objXmlDocument.SelectSingleNode("/chummer/skills/skill[name = \"" + objItem.Value + "\"]");
+				IXmlNode objXmlSkill = objXmlDocument.SelectSingleNode("/chummer/skills/skill[name = \"" + objItem.Value + "\"]");
 
 				//TODO: read from backup
 				Skill objSkill = Skill.FromData(objXmlSkill, c);

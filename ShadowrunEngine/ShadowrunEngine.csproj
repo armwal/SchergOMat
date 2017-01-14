@@ -35,11 +35,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ChummerInterfaces\CaseInsensitiveComparer.cs" />
     <Compile Include="ChummerInterfaces\IFileAccess.cs" />
     <Compile Include="Chummer\AddImprovementCollection.cs" />
     <Compile Include="Chummer\clsCommon.cs" />
     <Compile Include="Chummer\clsOptions.cs" />
     <Compile Include="Chummer\clsUtils.cs" />
+    <Compile Include="Chummer\ReverseTree.cs" />
     <Compile Include="Chummer\Skills\ExoticSkill.cs" />
     <Compile Include="Chummer\Skills\KnowledgeSkill.cs" />
     <Compile Include="Chummer\ObservableCollectionExtensions.cs" />
@@ -77,6 +79,7 @@
     <Compile Include="Chummer\Skills\SkillGroup.cs" />
     <Compile Include="Chummer\Skills\SkillSorters.cs" />
     <Compile Include="Chummer\Skills\SkillSpecialization.cs" />
+    <Compile Include="Chummer\TranslatedField.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Chummer\Skills\Skill.cs" />
     <Compile Include="Chummer\Skills\SkillsSection.cs" />

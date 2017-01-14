@@ -25,6 +25,12 @@ namespace Chummer
         List<ITreeNode> Nodes { get; }
     }
 
+    public interface IListViewItem
+    {
+        string Text { get; }
+        List<IListViewItem> SubItems { get; }
+    }
+
     public interface IContextMenuStrip
     {
 

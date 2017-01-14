@@ -18,6 +18,7 @@
  */
 ﻿using System;
 using System.Collections;
+using ShadowrunEngine.ChummerInterfaces;
 //using System.Windows.Forms;
 using System.Xml;
 
@@ -107,8 +108,8 @@ namespace Chummer
 	{
 		public int Compare(object objX, object objY)
 		{
-			ListViewItem lx = objX as ListViewItem;
-			ListViewItem ly = objY as ListViewItem;
+			IListViewItem lx = objX as IListViewItem;
+            IListViewItem ly = objY as IListViewItem;
 
 			return DateTime.Compare(DateTime.Parse(ly.Text), DateTime.Parse(lx.Text));
 		}
@@ -134,13 +135,13 @@ namespace Chummer
 	public class ListViewColumnSorter : IComparer
 	{
 		private int _intColumnToSort;
-		private SortOrder _objOrderOfSort;
+		private enSortOrder _objOrderOfSort;
 		private readonly CaseInsensitiveComparer _objObjectCompare;
 
 		public ListViewColumnSorter()
 		{
 			_intColumnToSort = 0;
-			_objOrderOfSort = SortOrder.None;
+			_objOrderOfSort = enSortOrder.None;
 			_objObjectCompare = new CaseInsensitiveComparer();
 		}
 
@@ -149,8 +150,8 @@ namespace Chummer
 			int compareResult;
 
 			// Cast the objects to be compared to ListViewItem objects
-			ListViewItem listviewX = (ListViewItem)x;
-			ListViewItem listviewY = (ListViewItem)y;
+			IListViewItem listviewX = (IListViewItem)x;
+			IListViewItem listviewY = (IListViewItem)y;
 
 			// Compare the two items
 			if (_intColumnToSort == 0)
@@ -161,9 +162,9 @@ namespace Chummer
 				compareResult = _objObjectCompare.Compare(listviewX.SubItems[_intColumnToSort].Text, listviewY.SubItems[_intColumnToSort].Text);
 			
 			// Calculate correct return value based on object comparison
-			if (_objOrderOfSort == SortOrder.Ascending)
+			if (_objOrderOfSort == enSortOrder.Ascending)
 				return compareResult;
-			else if (_objOrderOfSort == SortOrder.Descending)
+			else if (_objOrderOfSort == enSortOrder.Descending)
 				return (-compareResult);
 			else
 				return 0;
@@ -187,7 +188,7 @@ namespace Chummer
 		/// <summary>
 		/// SortOrder to be used.
 		/// </summary>
-		public SortOrder Order
+		public enSortOrder Order
 		{
 			get
 			{

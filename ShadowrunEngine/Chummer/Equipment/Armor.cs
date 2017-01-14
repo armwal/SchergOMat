@@ -161,7 +161,7 @@ namespace Chummer.Backend.Equipment
 					IXmlNode objXmlMod = objXmlArmorDocument.SelectSingleNode("/chummer/mods/mod[name = \"" + objXmlArmorMod.InnerText + "\"]");
 					if (objXmlMod != null)
 					{ 
-						ArmorMod objMod = new ArmorMod(_objCharacter);
+						ArmorMod objMod = new ArmorMod(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						List<Weapon> lstWeapons = new List<Weapon>();
 						List<ITreeNode> lstWeaponNodes = new List<ITreeNode>();
 
@@ -181,7 +181,7 @@ namespace Chummer.Backend.Equipment
 					}
 					else
 					{
-						ArmorMod objMod = new ArmorMod(_objCharacter);
+						ArmorMod objMod = new ArmorMod(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						List<Weapon> lstWeapons = new List<Weapon>();
 						List<ITreeNode> lstWeaponNodes = new List<ITreeNode>();
 
@@ -221,7 +221,7 @@ namespace Chummer.Backend.Equipment
 							strForceValue = objXmlArmorGear.Attributes["select"].InnerText;
 
 						IXmlNode objXmlGear = objXmlGearDocument.SelectSingleNode("/chummer/gears/gear[name = \"" + objXmlArmorGear.InnerText + "\"]");
-						Gear objGear = new Gear(_objCharacter);
+						Gear objGear = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
                     ITreeNode objGearNode = displayFactory.CreateTreeNode();
 						List<Weapon> lstWeapons = new List<Weapon>();
@@ -282,7 +282,7 @@ namespace Chummer.Backend.Equipment
 					// Use the Gear's SubClass if applicable.
 					if (objGear.GetType() == typeof(Commlink))
 					{
-						Commlink objCommlink = new Commlink(_objCharacter);
+						Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						objCommlink = (Commlink)objGear;
 						objCommlink.Save(objWriter);
 					}
@@ -340,7 +340,7 @@ namespace Chummer.Backend.Equipment
 				IXmlNodeList nodMods = objNode.SelectNodes("armormods/armormod");
 					foreach (IXmlNode nodMod in nodMods)
 					{
-						ArmorMod objMod = new ArmorMod(_objCharacter);
+						ArmorMod objMod = new ArmorMod(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						objMod.Load(nodMod, blnCopy);
 						objMod.Parent = this;
 						_lstArmorMods.Add(objMod);
@@ -357,12 +357,12 @@ namespace Chummer.Backend.Equipment
 							case "Commlink Accessories":
 							case "Cyberdecks":
 							case "Rigger Command Consoles":
-								Commlink objCommlink = new Commlink(_objCharacter);
+								Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 								objCommlink.Load(nodGear, blnCopy);
 								_lstGear.Add(objCommlink);
 								break;
 							default:
-								Gear objGear = new Gear(_objCharacter);
+								Gear objGear = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 								objGear.Load(nodGear, blnCopy);
 								_lstGear.Add(objGear);
 								break;
@@ -428,7 +428,7 @@ namespace Chummer.Backend.Equipment
 				// Use the Gear's SubClass if applicable.
 				if (objGear.GetType() == typeof(Commlink))
 				{
-					Commlink objCommlink = new Commlink(_objCharacter);
+					Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objCommlink = (Commlink)objGear;
 					objCommlink.Print(objWriter);
 				}

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml;
 using Chummer.Backend.Equipment;
 using Chummer.Datastructures;
+using ShadowrunEngine.ChummerInterfaces;
 
 namespace Chummer.Skills
 {
@@ -16,35 +17,35 @@ namespace Chummer.Skills
 		public static List<ListItem> DefaultKnowledgeSkillCatagories { get; }
 		public static List<ListItem> KnowledgeTypes { get; }  //Load the (possible translated) types of kno skills (Academic, Street...)
 
-		static KnowledgeSkill()
-		{
-			XmlDocument objXmlDocument = XmlManager.Instance.Load("skills.xml");
+		//static KnowledgeSkill()
+		//{
+		//	IXmlDocument objXmlDocument = XmlManager.Instance.Load("skills.xml");
 
-			XmlNodeList objXmlCategoryList = objXmlDocument.SelectNodes("/chummer/categories/category[@type = \"knowledge\"]");
+		//	IXmlNodeList objXmlCategoryList = objXmlDocument.SelectNodes("/chummer/categories/category[@type = \"knowledge\"]");
 
-            KnowledgeTypes = (from XmlNode objXmlCategory in objXmlCategoryList
-		        let display = objXmlCategory.Attributes["translate"]?.InnerText ?? objXmlCategory.InnerText
-		        orderby display
-		        select new ListItem(objXmlCategory.InnerText, display)).ToList();
+  //          KnowledgeTypes = (from IXmlNode objXmlCategory in objXmlCategoryList
+		//        let display = objXmlCategory.Attributes["translate"]?.InnerText ?? objXmlCategory.InnerText
+		//        orderby display
+		//        select new ListItem(objXmlCategory.InnerText, display)).ToList();
 
 
-		    XmlNodeList objXmlSkillList = objXmlDocument.SelectNodes("/chummer/knowledgeskills/skill");
-			DefaultKnowledgeSkillCatagories = new List<ListItem>();
-			foreach (XmlNode objXmlSkill in objXmlSkillList)
-			{
-				if (GlobalOptions.Instance.Language != "en-us")
-				{
-					_translator.Add(objXmlSkill["name"].InnerText, objXmlSkill["translate"]?.InnerText);
-				}
+		//    IXmlNodeList objXmlSkillList = objXmlDocument.SelectNodes("/chummer/knowledgeskills/skill");
+		//	DefaultKnowledgeSkillCatagories = new List<ListItem>();
+		//	foreach (IXmlNode objXmlSkill in objXmlSkillList)
+		//	{
+		//		//if (GlobalOptions.Instance.Language != "en-us")
+		//		//{
+		//		//	_translator.Add(objXmlSkill["name"].InnerText, objXmlSkill["translate"]?.InnerText);
+		//		//}
 
-				string display = objXmlSkill["translate"]?.InnerText ?? objXmlSkill["name"].InnerText;
+		//		string display = objXmlSkill["translate"]?.InnerText ?? objXmlSkill["name"].InnerText;
 
-				DefaultKnowledgeSkillCatagories.Add(new ListItem(objXmlSkill["name"].InnerText, display));
+		//		DefaultKnowledgeSkillCatagories.Add(new ListItem(objXmlSkill["name"].InnerText, display));
 
-				NameCategoryMap[objXmlSkill["name"].InnerText] = objXmlSkill["category"].InnerText;
-				CategoriesSkillMap[objXmlSkill["category"].InnerText] = objXmlSkill["attribute"].InnerText;
-			}
-		}
+		//		NameCategoryMap[objXmlSkill["name"].InnerText] = objXmlSkill["category"].InnerText;
+		//		CategoriesSkillMap[objXmlSkill["category"].InnerText] = objXmlSkill["attribute"].InnerText;
+		//	}
+		//}
 
 		public static List<ListItem> KnowledgeSkillsWithCategory(params string[] categories)
 		{
@@ -62,17 +63,24 @@ namespace Chummer.Skills
 		private List<ListItem> _knowledgeSkillCatagories;
 		private string _type;
 		private string _skillCategory;
-		public bool ForcedName { get; }
 
-		public KnowledgeSkill(Character character) : base(character, (string)null)
+        private IXmlDocumentFactory documentFactory;
+        private IFileAccess fileAccess;
+
+        public bool ForcedName { get; }
+
+		public KnowledgeSkill(Character character, IFileAccess fileAccess, IXmlDocumentFactory documentFactory) : base(character, (string)null)
 		{
 			AttributeObject = character.GetAttribute("LOG");
 			AttributeObject.PropertyChanged += OnLinkedAttributeChanged;
 			_type = "";
 			SuggestedSpecializations = new List<ListItem>();
-		}
 
-		public KnowledgeSkill(Character character, string forcedName) : this(character)
+            this.documentFactory = documentFactory;
+            this.fileAccess = fileAccess;
+        }
+
+		public KnowledgeSkill(Character character, string forcedName, IFileAccess fileAccess, IXmlDocumentFactory documentFactory) : this(character, fileAccess, documentFactory)
 		{
 			WriteableName = forcedName;
 			ForcedName = true;
@@ -114,9 +122,9 @@ namespace Chummer.Skills
 				Type = NameCategoryMap[name];
 				SuggestedSpecializations.Clear();
 
-				XmlNodeList list =
-					XmlManager.Instance.Load("skills.xml").SelectNodes($"chummer/knowledgeskills/skill[name = \"{name}\"]/specs/spec");
-				foreach (XmlNode node in list)
+				IXmlNodeList list =
+					XmlManager.Instance.Load("skills.xml", fileAccess, documentFactory).SelectNodes($"chummer/knowledgeskills/skill[name = \"{name}\"]/specs/spec");
+				foreach (IXmlNode node in list)
 				{
 					SuggestedSpecializations.Add(ListItem.AutoXml(node.InnerText, node));
 				}
@@ -347,18 +355,18 @@ namespace Chummer.Skills
 			}
 		}
 
-		protected override void SaveExtendedData(XmlTextWriter writer)
+		protected override void SaveExtendedData(IXmlWriter writer)
 		{
 			writer.WriteElementString("name", _name);
 			writer.WriteElementString("type", _type);
-			if(_translated != null) writer.WriteElementString(GlobalOptions.Instance.Language, _translated);
+			if(_translated != null) writer.WriteElementString(GlobalOptions.Language, _translated);
 			if(ForcedName) writer.WriteElementString("forced", null);
 		}
 
-		public void Load(XmlNode node)
+		public void Load(IXmlNode node)
 		{
 			node.TryGetField("name", out _name);
-			node.TryGetField(GlobalOptions.Instance.Language, out _translated);
+			node.TryGetField(GlobalOptions.Language, out _translated);
 
 			LoadSuggestedSpecializations(_name);
 			Type = node["type"].InnerText;

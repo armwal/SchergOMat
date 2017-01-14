@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
-using Chummer.Annotations;
+//using Chummer.Annotations;
 using Chummer.Backend;
 
 namespace Chummer.Skills
@@ -230,7 +230,7 @@ namespace Chummer.Skills
 			skill.PropertyChanged += SkillOnPropertyChanged;
 		}
 
-		internal void WriteTo(XmlWriter writer)
+		internal void WriteTo(IXmlWriter writer)
 		{
 			writer.WriteStartElement("group");
 
@@ -242,7 +242,7 @@ namespace Chummer.Skills
 			writer.WriteEndElement();
 		}
 
-		internal static SkillGroup Load(Character character, XmlNode saved)
+		internal static SkillGroup Load(Character character, IXmlNode saved)
 		{
 			Guid g;
 			saved.TryGetField("id", Guid.TryParse, out g);
@@ -336,16 +336,16 @@ namespace Chummer.Skills
 			{
 				if(_cachedDisplayName != null) return _cachedDisplayName;
 				 
-				if (GlobalOptions.Instance.Language != "en-us")
-				{
-					XmlDocument objXmlDocument = XmlManager.Instance.Load("skills.xml");
-					XmlNode objNode = objXmlDocument.SelectSingleNode("/chummer/skillgroups/name[. = \"" + Name + "\"]");
-					if (objNode != null)
-					{
-						if (objNode.Attributes["translate"] != null)
-							return _cachedDisplayName = objNode.Attributes["translate"].InnerText;
-					}
-				}
+				//if (GlobalOptions.Instance.Language != "en-us")
+				//{
+				//	XmlDocument objXmlDocument = XmlManager.Instance.Load("skills.xml");
+				//	XmlNode objNode = objXmlDocument.SelectSingleNode("/chummer/skillgroups/name[. = \"" + Name + "\"]");
+				//	if (objNode != null)
+				//	{
+				//		if (objNode.Attributes["translate"] != null)
+				//			return _cachedDisplayName = objNode.Attributes["translate"].InnerText;
+				//	}
+				//}
 				return _cachedDisplayName = Name;
 			} 
 		}
@@ -425,7 +425,7 @@ namespace Chummer.Skills
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		[NotifyPropertyChangedInvocator]
+		//[NotifyPropertyChangedInvocator]
 		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
 		{
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

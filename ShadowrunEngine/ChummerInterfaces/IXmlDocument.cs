@@ -25,6 +25,7 @@ namespace Chummer
         IXmlNode CreateElement(string path);
         void AppendChild(IXmlNode node);
         IXmlNode ImportNode(IXmlNode node, bool full);
+        IXmlNode this[string name] { get; set; }
     }
 
     public interface IXPathNavigator
@@ -58,6 +59,7 @@ namespace Chummer
         bool HasChildNodes { get; }
         IXmlNodeList ChildNodes { get; }
         IXmlNode ParentNode { get; }
+        IXmlDocument OwnerDocument { get; }
 
         IXmlNode SelectSingleNode(string path);
         IXmlNodeList SelectNodes(string path);
@@ -68,6 +70,7 @@ namespace Chummer
         bool TryGetField<T>(string name, out T value);
         bool TryGetField<T>(string name, out T value, T onError);
         bool TryGetField<T>(string name, TryParseFunction<T> parser, out T read);
+        bool TryGetField<T>(string name, TryParseFunction<T> parser, out T read, T newVal);
         bool TryCheckValue(string name, string value);
 
         void TryPreserveField(string name, ref bool value);

@@ -260,7 +260,7 @@ namespace Chummer.Backend.Equipment
 					IXmlNode objXmlWeapon = objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + objXmlAddWeapon.InnerText + "\"]");
 
                     ITreeNode objGearWeaponNode = displayFactory.CreateTreeNode();
-					Weapon objGearWeapon = new Weapon(objCharacter);
+					Weapon objGearWeapon = new Weapon(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objGearWeapon.Create(objXmlWeapon, objCharacter, objGearWeaponNode, null, null);
 					//objGearWeaponNode.ForeColor = SystemColors.GrayText;
 					if (blnAerodynamic)
@@ -515,7 +515,7 @@ namespace Chummer.Backend.Equipment
 				Gear objChild = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
                 if (objGearChild.GetType() == typeof(Commlink))
 				{
-					Commlink objCommlink = new Commlink(_objCharacter);
+					Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objCommlink.Copy(objGearChild, objChildNode, objWeapons, objWeaponNodes);
 					objChild = objCommlink;
 				}
@@ -583,7 +583,7 @@ namespace Chummer.Backend.Equipment
 				// Use the Gear's SubClass if applicable.
 				if (objGear.GetType() == typeof(Commlink))
 				{
-					Commlink objCommlink = new Commlink(_objCharacter);
+					Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objCommlink = (Commlink)objGear;
 					objCommlink.Save(objWriter);
 				}
@@ -760,7 +760,7 @@ namespace Chummer.Backend.Equipment
 						case "Commlink Accessories":
 						case "Cyberdecks":
 						case "Rigger Command Consoles":
-							Commlink objCommlink = new Commlink(_objCharacter);
+							Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 							objCommlink.Load(nodChild, blnCopy);
 							objCommlink.Parent = this;
 							_objChildren.Add(objCommlink);
@@ -881,7 +881,7 @@ namespace Chummer.Backend.Equipment
 				// Use the Gear's SubClass if applicable.
 				if (objGear.GetType() == typeof(Commlink))
 				{
-					Commlink objCommlink = new Commlink(_objCharacter);
+					Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objCommlink = (Commlink)objGear;
 					objCommlink.Print(objWriter);
 				}

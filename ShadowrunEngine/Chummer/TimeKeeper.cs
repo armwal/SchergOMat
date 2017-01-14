@@ -17,5 +17,10 @@ namespace Chummer
         {
 
         }
+
+        public static void Finish(string name)
+        {
+
+        }
     }
 }

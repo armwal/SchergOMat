@@ -8,7 +8,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
 using Chummer.Backend;
+using Chummer.Datastructures;
 using Chummer.Backend.Equipment;
+using ShadowrunEngine.ChummerInterfaces;
 
 namespace Chummer.Skills
 {
@@ -33,9 +35,11 @@ namespace Chummer.Skills
 		private readonly string _translatedName = null;
 		private string _translatedCategory = null;
 
+        private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
+        private IDisplayFactory displayFactory;
 
-
-		public void WriteTo(IXmlWriter writer)
+        public void WriteTo(IXmlWriter writer)
 		{
 			writer.WriteStartElement("skill");
 			writer.WriteElementString("guid", Id.ToString());
@@ -125,12 +129,12 @@ namespace Chummer.Skills
 		/// <param name="n">The XML node describing the skill</param>
 		/// <param name="character">The character this skill belongs to</param>
 		/// <returns></returns>
-		public static Skill Load(Character character, IXmlNode n)
+		public static Skill Load(Character character, IXmlNode n, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			if (n["suid"] == null) return null;
 
 			Guid suid;
-			IXmlDocument skills = XmlManager.Instance.Load("skills.xml");
+			IXmlDocument skills = XmlManager.Instance.Load("skills.xml", fileAccess, documentFactory);
 			if (!Guid.TryParse(n["suid"].InnerText, out suid))
 			{
 				return null;
@@ -144,24 +148,24 @@ namespace Chummer.Skills
 
 				if (node["exotic"]?.InnerText == "Yes")
 				{
-					ExoticSkill exotic = new ExoticSkill(character, node);
+					ExoticSkill exotic = new ExoticSkill(character, node, fileAccess, documentFactory);
 					exotic.Load(n);
 					skill = exotic;
 				}
 				else
 				{
-					skill = new Skill(character, node);
+					skill = new Skill(character, node, documentFactory, messageDisplay, displayFactory);
 				}
 			}
 			else //This is ugly but i'm not sure how to make it pretty
 			{
 				if (n["forced"] != null)
 				{
-					skill = new KnowledgeSkill(character, n["name"].InnerText);
+					skill = new KnowledgeSkill(character, n["name"].InnerText, fileAccess, documentFactory);
 				}
 				else
 				{
-					KnowledgeSkill knoSkill = new KnowledgeSkill(character);
+					KnowledgeSkill knoSkill = new KnowledgeSkill(character, fileAccess, documentFactory);
 					knoSkill.Load(n);
 					skill = knoSkill;
 				}
@@ -195,7 +199,7 @@ namespace Chummer.Skills
 		/// <param name="character"></param>
 		/// <param name="n"></param>
 		/// <returns></returns>
-		public static Skill LegacyLoad(Character character, IXmlNode n)
+		public static Skill LegacyLoad(Character character, IXmlNode n, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			Guid suid;
 			Skill skill;
@@ -208,7 +212,7 @@ namespace Chummer.Skills
 
 			if (n.TryCheckValue("knowledge", "True"))
 			{
-				Skills.KnowledgeSkill kno = new KnowledgeSkill(character);
+				Skills.KnowledgeSkill kno = new KnowledgeSkill(character, fileAccess, documentFactory);
 				kno.WriteableName = n["name"].InnerText;
 				kno.Base = baseRating;
 				kno.Karma = karmaRating;
@@ -220,17 +224,17 @@ namespace Chummer.Skills
 			else
 			{
 				IXmlNode data =
-					XmlManager.Instance.Load("skills.xml").SelectSingleNode($"/chummer/skills/skill[id = '{suid}']");
+					XmlManager.Instance.Load("skills.xml", fileAccess, documentFactory).SelectSingleNode($"/chummer/skills/skill[id = '{suid}']");
 
 				//Some stuff apparently have a guid of 0000-000... (only exotic?)
 				if (data == null)
 				{
-					data = XmlManager.Instance.Load("skills.xml")
+					data = XmlManager.Instance.Load("skills.xml", fileAccess, documentFactory)
 						.SelectSingleNode($"/chummer/skills/skill[name = '{n["name"].InnerText}']");
 				}
 
 
-				skill = Skill.FromData(data, character);
+				skill = Skill.FromData(data, character, documentFactory, messageDisplay, displayFactory, fileAccess);
 				skill._base = baseRating;
 				skill._karma = karmaRating;
 
@@ -268,18 +272,18 @@ namespace Chummer.Skills
 		/// <param name="n">The XML node describing the skill</param>
 		/// <param name="character">The character the skill belongs to</param>
 		/// <returns></returns>
-		public static Skill FromData(IXmlNode n, Character character)
+		public static Skill FromData(IXmlNode n, Character character, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			Skill s;
 			if (n["exotic"] != null && n["exotic"].InnerText == "Yes")
 			{
 				//load exotic skill
-				ExoticSkill s2 = new ExoticSkill(character, n);
+				ExoticSkill s2 = new ExoticSkill(character, n, fileAccess, documentFactory);
 				s = s2;
 			}
 			else
 			{
-				IXmlDocument document = XmlManager.Instance.Load("skills.xml");
+				IXmlDocument document = XmlManager.Instance.Load("skills.xml", fileAccess, documentFactory);
 				IXmlNode knoNode = null;
 				string category = n["category"].InnerText; //if missing we have bigger problems, and a nullref is probably prefered
 				bool knoSkill;
@@ -301,13 +305,13 @@ namespace Chummer.Skills
 					//TODO INIT SKILL
 					if (Debugger.IsAttached) Debugger.Break();
 
-					KnowledgeSkill s2 = new KnowledgeSkill(character);
+					KnowledgeSkill s2 = new KnowledgeSkill(character, fileAccess, documentFactory);
 
 					s = s2;
 				}
 				else
 				{
-					Skill s2 = new Skill(character, n);
+					Skill s2 = new Skill(character, n, documentFactory, messageDisplay, displayFactory);
 					//TODO INIT SKILL
 
 					s = s2;
@@ -325,7 +329,7 @@ namespace Chummer.Skills
 			return s;
 		}
 
-		protected Skill(Character character, string group)
+		protected Skill(Character character, string group, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
 		{
 			_character = character;
 			_group = group;
@@ -338,12 +342,16 @@ namespace Chummer.Skills
 			}
 
 			character.ImprovementEvent += OnImprovementEvent;
-			Specializations.ListChanged += SpecializationsOnListChanged;
-		}
+			Specializations.CollectionChanged += SpecializationsOnListChanged;
+
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
+        }
 
 
 		//load from data
-		protected Skill(Character character, IXmlNode n) : this(character, n["skillgroup"].InnerText)
+		protected Skill(Character character, IXmlNode n, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory) : this(character, n["skillgroup"].InnerText, documentFactory, messageDisplay, displayFactory)
 			//Ugly hack, needs by then
 		{
 			_name = n["name"].InnerText; //No need to catch errors (for now), if missing we are fsked anyway
@@ -405,15 +413,8 @@ namespace Chummer.Skills
 		{
 			get
 			{
-				if (GlobalOptions.Instance.Language != "en-us")
-				{
-					return LanguageManager.Instance.GetString($"String_Attribute{AttributeObject.Abbrev}Short");
-				}
-				else
-				{
-					return AttributeObject.Abbrev;
-				}
-			}
+                return AttributeObject.Abbrev;
+            }
 		}
 
 		private bool _oldEnable = true; //For OnPropertyChanged 
@@ -835,7 +836,7 @@ namespace Chummer.Skills
 			}
 
 
-			ImprovementManager manager = new ImprovementManager(CharacterObject);
+			ImprovementManager manager = new ImprovementManager(CharacterObject, documentFactory, messageDisplay, displayFactory);
 
 			int skillWireRating = manager.ValueOf(Improvement.ImprovementType.Skillwire);
 			if ((skillWireRating > 0 || IsKnowledgeSkill) && CharacterObject.SkillsoftAccess)
@@ -904,7 +905,7 @@ namespace Chummer.Skills
 
 		public event PropertyChangedEventHandler PropertyChanged;
 
-		[NotifyPropertyChangedInvocator]
+		//[NotifyPropertyChangedInvocator]
 		protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
 		{
 			foreach (string s in DependencyTree.Find(propertyName))
@@ -952,7 +953,7 @@ namespace Chummer.Skills
 
 		}
 
-		private void SpecializationsOnListChanged(object sender, ListChangedEventArgs listChangedEventArgs)
+		private void SpecializationsOnListChanged(object sender, EventArgs listChangedEventArgs)
 		{
 			_cachedStringSpec = null;
 			OnPropertyChanged(nameof(Specialization));

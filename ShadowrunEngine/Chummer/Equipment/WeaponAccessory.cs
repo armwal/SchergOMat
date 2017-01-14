@@ -1,8 +1,9 @@
+using ShadowrunEngine.ChummerInterfaces;
 using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
+//using System.Windows.Forms;
 using System.Xml;
-using System.Xml.XPath;
+//using System.Xml.XPath;
 
 namespace Chummer.Backend.Equipment
 {
@@ -13,7 +14,7 @@ namespace Chummer.Backend.Equipment
 	{
 		private Guid _guiID = new Guid();
 		private readonly Character _objCharacter;
-		private XmlNode _nodAllowGear;
+		private IXmlNode _nodAllowGear;
 		private List<Gear> _lstGear = new List<Gear>();
 		private Weapon _objParent;
 		private string _strName = "";
@@ -53,13 +54,23 @@ namespace Chummer.Backend.Equipment
 		private string _strAmmoReplace = "";
 		private int _intAmmoBonus = 0;
 
-		#region Constructor, Create, Save, Load, and Print Methods
-		public WeaponAccessory(Character objCharacter)
+        private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
+        private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
+
+        #region Constructor, Create, Save, Load, and Print Methods
+        public WeaponAccessory(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Weapon.
 			_guiID = Guid.NewGuid();
 			_objCharacter = objCharacter;
-		}
+
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
+        }
 
 		/// Create a Weapon Accessory from an XmlNode and return the TreeNodes for it.
 		/// <param name="objXmlAccessory">XmlNode to create the object from.</param>
@@ -99,18 +110,18 @@ namespace Chummer.Backend.Equipment
 			objXmlAccessory.TryGetField("ammobonus", out _intAmmoBonus);
 			objXmlAccessory.TryGetField("accessorycostmultiplier", out _intAccessoryCostMultiplier);
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
-				XmlNode objAccessoryNode = objXmlDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + _strName + "\"]");
-				if (objAccessoryNode != null)
-				{
-					if (objAccessoryNode["translate"] != null)
-						_strAltName = objAccessoryNode["translate"].InnerText;
-					if (objAccessoryNode["altpage"] != null)
-						_strAltPage = objAccessoryNode["altpage"].InnerText;
-				}
-			}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
+			//	XmlNode objAccessoryNode = objXmlDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + _strName + "\"]");
+			//	if (objAccessoryNode != null)
+			//	{
+			//		if (objAccessoryNode["translate"] != null)
+			//			_strAltName = objAccessoryNode["translate"].InnerText;
+			//		if (objAccessoryNode["altpage"] != null)
+			//			_strAltPage = objAccessoryNode["altpage"].InnerText;
+			//	}
+			//}
 
 			objNode.Text = DisplayName;
 			objNode.Tag = _guiID.ToString();
@@ -150,7 +161,7 @@ namespace Chummer.Backend.Equipment
 					// Use the Gear's SubClass if applicable.
 					if (objGear.GetType() == typeof(Commlink))
 					{
-						Commlink objCommlink = new Commlink(_objCharacter);
+						Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						objCommlink = (Commlink)objGear;
 						objCommlink.Save(objWriter);
 					}
@@ -186,7 +197,7 @@ namespace Chummer.Backend.Equipment
 		/// </summary>
 		/// <param name="objNode">XmlNode to load.</param>
 		/// <param name="blnCopy">Whether another node is being copied.</param>
-		public void Load(XmlNode objNode, bool blnCopy = false)
+		public void Load(IXmlNode objNode, bool blnCopy = false)
 		{
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
@@ -223,8 +234,8 @@ namespace Chummer.Backend.Equipment
 
 			if (objNode.InnerXml.Contains("<gears>"))
 			{
-				XmlNodeList nodChildren = objNode.SelectNodes("gears/gear");
-				foreach (XmlNode nodChild in nodChildren)
+				IXmlNodeList nodChildren = objNode.SelectNodes("gears/gear");
+				foreach (IXmlNode nodChild in nodChildren)
 				{
 					switch (nodChild["category"].InnerText)
 					{
@@ -232,12 +243,12 @@ namespace Chummer.Backend.Equipment
 						case "Commlink Accessories":
 						case "Cyberdecks":
 						case "Rigger Command Consoles":
-							Commlink objCommlink = new Commlink(_objCharacter);
+							Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 							objCommlink.Load(nodChild, blnCopy);
 							_lstGear.Add(objCommlink);
 							break;
 						default:
-							Gear objGear = new Gear(_objCharacter);
+							Gear objGear = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 							objGear.Load(nodChild, blnCopy);
 							_lstGear.Add(objGear);
 							break;
@@ -247,18 +258,18 @@ namespace Chummer.Backend.Equipment
 			objNode.TryGetField("notes", out _strNotes, "");
 			objNode.TryGetField("discountedcost", out _blnDiscountCost, false);
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
-				XmlNode objAccessoryNode = objXmlDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + _strName + "\"]");
-				if (objAccessoryNode != null)
-				{
-					if (objAccessoryNode["translate"] != null)
-						_strAltName = objAccessoryNode["translate"].InnerText;
-					if (objAccessoryNode["altpage"] != null)
-						_strAltPage = objAccessoryNode["altpage"].InnerText;
-				}
-			}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
+			//	XmlNode objAccessoryNode = objXmlDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + _strName + "\"]");
+			//	if (objAccessoryNode != null)
+			//	{
+			//		if (objAccessoryNode["translate"] != null)
+			//			_strAltName = objAccessoryNode["translate"].InnerText;
+			//		if (objAccessoryNode["altpage"] != null)
+			//			_strAltPage = objAccessoryNode["altpage"].InnerText;
+			//	}
+			//}
 			if (objNode["damage"] != null)
 			{
 				_strDamage = objNode["damage"].InnerText;
@@ -328,7 +339,7 @@ namespace Chummer.Backend.Equipment
 					// Use the Gear's SubClass if applicable.
 					if (objGear.GetType() == typeof(Commlink))
 					{
-						Commlink objCommlink = new Commlink(_objCharacter);
+						Commlink objCommlink = new Commlink(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						objCommlink = (Commlink)objGear;
 						objCommlink.Print(objWriter);
 					}
@@ -594,15 +605,15 @@ namespace Chummer.Backend.Equipment
 
 				if (_strConceal.Contains("Rating"))
 				{
-					// If the cost is determined by the Rating, evaluate the expression.
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
+                    // If the cost is determined by the Rating, evaluate the expression.
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+					IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 					string strConceal = "";
 					string strCostExpression = _strConceal;
 
 					strConceal = strCostExpression.Replace("Rating", _intRating.ToString());
-					XPathExpression xprCost = nav.Compile(strConceal);
+					IXPathExpression xprCost = nav.Compile(strConceal);
 					double dblConceal = Math.Ceiling(Convert.ToDouble(nav.Evaluate(xprCost), GlobalOptions.Instance.CultureInfo));
 					intReturn = Convert.ToInt32(dblConceal);
 				}
@@ -760,9 +771,9 @@ namespace Chummer.Backend.Equipment
 
 				if (_strAvail.Contains("Rating"))
 				{
-					// If the availability is determined by the Rating, evaluate the expression.
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
+                    // If the availability is determined by the Rating, evaluate the expression.
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+					IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 					string strAvail = "";
 					string strAvailExpr = _strAvail;
@@ -773,7 +784,7 @@ namespace Chummer.Backend.Equipment
 						// Remove the trailing character if it is "F" or "R".
 						strAvailExpr = strAvailExpr.Substring(0, strAvailExpr.Length - 1);
 					}
-					XPathExpression xprAvail = nav.Compile(strAvailExpr.Replace("Rating", _intRating.ToString()));
+					IXPathExpression xprAvail = nav.Compile(strAvailExpr.Replace("Rating", _intRating.ToString()));
 					strCalculated = Convert.ToInt32(nav.Evaluate(xprAvail)).ToString() + strAvail;
 				}
 				else
@@ -812,7 +823,7 @@ namespace Chummer.Backend.Equipment
 		/// <summary>
 		/// AllowGear node from the XML file.
 		/// </summary>
-		public XmlNode AllowGear
+		public IXmlNode AllowGear
 		{
 			get
 			{
@@ -874,15 +885,15 @@ namespace Chummer.Backend.Equipment
 			{
 				int intReturn = 0;
 
-				XmlDocument objXmlDocument = new XmlDocument();
-				XPathNavigator nav = objXmlDocument.CreateNavigator();
+                IXmlDocument objXmlDocument = documentFactory.CreateNew();
+				IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 				string strCost = "";
 				string strCostExpression = _strCost;
 
 				strCost = strCostExpression.Replace("Weapon Cost", _objParent.Cost.ToString());
 				strCost = strCost.Replace("Rating", _intRating.ToString());
-				XPathExpression xprCost = nav.Compile(strCost);
+				IXPathExpression xprCost = nav.Compile(strCost);
 				intReturn = (Convert.ToInt32(nav.Evaluate(xprCost).ToString()) * _objParent.CostMultiplier);
 
 				if (DiscountCost)
@@ -907,16 +918,16 @@ namespace Chummer.Backend.Equipment
 
 				if (_strCost.Contains("Rating") || _strCost.Contains("Weapon Cost"))
 				{
-					// If the cost is determined by the Rating, evaluate the expression.
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
+                    // If the cost is determined by the Rating, evaluate the expression.
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+					IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 					string strCost = "";
 					string strCostExpression = _strCost;
 
 					strCost = strCostExpression.Replace("Rating", _intRating.ToString());
 					strCost = strCost.Replace("Weapon Cost", _objParent.Cost.ToString());
-					XPathExpression xprCost = nav.Compile(strCost);
+					IXPathExpression xprCost = nav.Compile(strCost);
 					double dblCost = Math.Ceiling(Convert.ToDouble(nav.Evaluate(xprCost), GlobalOptions.Instance.CultureInfo));
 					intReturn = Convert.ToInt32(dblCost);
 				}

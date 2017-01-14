@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
+//using System.Windows.Forms;
 using System.Xml;
-using System.Xml.XPath;
+//using System.Xml.XPath;
 using Chummer.Skills;
+using ShadowrunEngine.ChummerInterfaces;
 
 namespace Chummer.Backend.Equipment
 {
@@ -67,13 +68,23 @@ namespace Chummer.Backend.Equipment
 
 		private readonly Character _objCharacter;
 
-		#region Constructor, Create, Save, Load, and Print Methods
-		public Weapon(Character objCharacter)
+        private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
+        private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
+
+        #region Constructor, Create, Save, Load, and Print Methods
+        public Weapon(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Weapon.
 			_guiID = Guid.NewGuid();
 			_objCharacter = objCharacter;
-		}
+
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
+        }
 
 		/// Create a Weapon from an XmlNode and return the TreeNodes for it.
 		/// <param name="objXmlWeapon">XmlNode to create the object from.</param>
@@ -95,9 +106,9 @@ namespace Chummer.Backend.Equipment
 			_strAmmo = objXmlWeapon["ammo"].InnerText;
 			if (objXmlWeapon["accessorymounts"] != null)
 			{
-				XmlNodeList objXmlMountList = objXmlWeapon.SelectNodes("accessorymounts/mount");
+				IXmlNodeList objXmlMountList = objXmlWeapon.SelectNodes("accessorymounts/mount");
 				string strMounts = "";
-				foreach (XmlNode objXmlMount in objXmlMountList)
+				foreach (IXmlNode objXmlMount in objXmlMountList)
 				{
 					strMounts += objXmlMount.InnerText + "/";
 				}
@@ -137,26 +148,26 @@ namespace Chummer.Backend.Equipment
 			_strSource = objXmlWeapon["source"].InnerText;
 			_strPage = objXmlWeapon["page"].InnerText;
 
-			XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
+			IXmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml", fileAccess, documentFactory);
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlNode objWeaponNode = objXmlDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + _strName + "\"]");
-				if (objWeaponNode != null)
-				{
-					if (objWeaponNode["translate"] != null)
-						_strAltName = objWeaponNode["translate"].InnerText;
-					if (objWeaponNode["altpage"] != null)
-						_strAltPage = objWeaponNode["altpage"].InnerText;
-				}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlNode objWeaponNode = objXmlDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + _strName + "\"]");
+			//	if (objWeaponNode != null)
+			//	{
+			//		if (objWeaponNode["translate"] != null)
+			//			_strAltName = objWeaponNode["translate"].InnerText;
+			//		if (objWeaponNode["altpage"] != null)
+			//			_strAltPage = objWeaponNode["altpage"].InnerText;
+			//	}
 
-				objWeaponNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-				if (objWeaponNode != null)
-				{
-					if (objWeaponNode.Attributes["translate"] != null)
-						_strAltCategory = objWeaponNode.Attributes["translate"].InnerText;
-				}
-			}
+			//	objWeaponNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
+			//	if (objWeaponNode != null)
+			//	{
+			//		if (objWeaponNode.Attributes["translate"] != null)
+			//			_strAltCategory = objWeaponNode.Attributes["translate"].InnerText;
+			//	}
+			//}
 
 			// Populate the Range if it differs from the Weapon's Category.
 			if (objXmlWeapon["range"] != null)
@@ -199,11 +210,11 @@ namespace Chummer.Backend.Equipment
 			// If the Weapon comes with an Underbarrel Weapon, add it.
 			if (objXmlWeapon.InnerXml.Contains("<underbarrels>") && blnCreateChildren)
 			{
-				foreach (XmlNode objXmlUnderbarrel in objXmlWeapon["underbarrels"].ChildNodes)
+				foreach (IXmlNode objXmlUnderbarrel in objXmlWeapon["underbarrels"].ChildNodes)
 				{
-					Weapon objUnderbarrelWeapon = new Weapon(_objCharacter);
-					TreeNode objUnderbarrelNode = new TreeNode();
-					XmlNode objXmlWeaponNode =
+					Weapon objUnderbarrelWeapon = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
+                    ITreeNode objUnderbarrelNode = displayFactory.CreateTreeNode();
+					IXmlNode objXmlWeaponNode =
 						objXmlDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + objXmlUnderbarrel.InnerText + "\"]");
 					objUnderbarrelWeapon.Create(objXmlWeaponNode, _objCharacter, objUnderbarrelNode, cmsWeapon, cmsWeaponAccessory);
 					objUnderbarrelWeapon.IncludedInWeapon = true;
@@ -217,11 +228,11 @@ namespace Chummer.Backend.Equipment
 			// If there are any Accessories that come with the Weapon, add them.
 			if (objXmlWeapon.InnerXml.Contains("<accessories>") && blnCreateChildren)
 			{
-				XmlNodeList objXmlAccessoryList = objXmlWeapon.SelectNodes("accessories/accessory");
-				foreach (XmlNode objXmlWeaponAccessory in objXmlAccessoryList)
+				IXmlNodeList objXmlAccessoryList = objXmlWeapon.SelectNodes("accessories/accessory");
+				foreach (IXmlNode objXmlWeaponAccessory in objXmlAccessoryList)
 				{
-					XmlNode objXmlAccessory = objXmlDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + objXmlWeaponAccessory["name"].InnerText + "\"]");
-					TreeNode objAccessoryNode = new TreeNode();
+					IXmlNode objXmlAccessory = objXmlDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + objXmlWeaponAccessory["name"].InnerText + "\"]");
+                    ITreeNode objAccessoryNode = displayFactory.CreateTreeNode();
 					WeaponAccessory objAccessory = new WeaponAccessory(_objCharacter);
 					int intAccessoryRating = 0;
 					if (objXmlWeaponAccessory.InnerXml.Contains("<rating>"))
@@ -349,9 +360,9 @@ namespace Chummer.Backend.Equipment
 			_ammo.Clear();
 			if (objNode["clips"] != null)
 			{
-				XmlNode clipNode = objNode["clips"];
+				IXmlNode clipNode = objNode["clips"];
 
-				foreach (XmlNode node in clipNode.ChildNodes)
+				foreach (IXmlNode node in clipNode.ChildNodes)
 				{
 					try
 					{
@@ -399,30 +410,30 @@ namespace Chummer.Backend.Equipment
 			objNode.TryGetField("installed", out _blnInstalled);
 			objNode.TryGetField("requireammo", out _blnRequireAmmo);
 
-			if (GlobalOptions.Instance.Language != "en-us")
-			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
-				XmlNode objWeaponNode = objXmlDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + _strName + "\"]");
-				if (objWeaponNode != null)
-				{
-					if (objWeaponNode["translate"] != null)
-						_strAltName = objWeaponNode["translate"].InnerText;
-					if (objWeaponNode["altpage"] != null)
-						_strAltPage = objWeaponNode["altpage"].InnerText;
-				}
+			//if (GlobalOptions.Instance.Language != "en-us")
+			//{
+			//	XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
+			//	XmlNode objWeaponNode = objXmlDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + _strName + "\"]");
+			//	if (objWeaponNode != null)
+			//	{
+			//		if (objWeaponNode["translate"] != null)
+			//			_strAltName = objWeaponNode["translate"].InnerText;
+			//		if (objWeaponNode["altpage"] != null)
+			//			_strAltPage = objWeaponNode["altpage"].InnerText;
+			//	}
 
-				objWeaponNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-				if (objWeaponNode != null)
-				{
-					if (objWeaponNode.Attributes["translate"] != null)
-						_strAltCategory = objWeaponNode.Attributes["translate"].InnerText;
-				}
-			}
+			//	objWeaponNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
+			//	if (objWeaponNode != null)
+			//	{
+			//		if (objWeaponNode.Attributes["translate"] != null)
+			//			_strAltCategory = objWeaponNode.Attributes["translate"].InnerText;
+			//	}
+			//}
 
 			if (objNode.InnerXml.Contains("<accessories>"))
 			{
-				XmlNodeList nodChildren = objNode.SelectNodes("accessories/accessory");
-				foreach (XmlNode nodChild in nodChildren)
+				IXmlNodeList nodChildren = objNode.SelectNodes("accessories/accessory");
+				foreach (IXmlNode nodChild in nodChildren)
 				{
 					WeaponAccessory objAccessory = new WeaponAccessory(_objCharacter);
 					objAccessory.Load(nodChild, blnCopy);
@@ -433,9 +444,9 @@ namespace Chummer.Backend.Equipment
 
 			if (objNode.InnerXml.Contains("<underbarrel>"))
 			{
-				foreach (XmlNode nodWeapon in objNode.SelectNodes("underbarrel/weapon"))
+				foreach (IXmlNode nodWeapon in objNode.SelectNodes("underbarrel/weapon"))
 				{
-					Weapon objUnderbarrel = new Weapon(_objCharacter);
+					Weapon objUnderbarrel = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objUnderbarrel.Load(nodWeapon, blnCopy);
 					objUnderbarrel.IsUnderbarrelWeapon = true;
 					_lstUnderbarrel.Add(objUnderbarrel);
@@ -563,7 +574,7 @@ namespace Chummer.Backend.Equipment
 				Gear objAmmo = objFunctions.FindGear(guiAmmo.ToString(), _objCharacter.Gear);
 				if (objAmmo == null)
 				{
-					Vehicle objVehicle = new Vehicle(_objCharacter);
+					Vehicle objVehicle = new Vehicle(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objAmmo = objFunctions.FindVehicleGear(guiAmmo.ToString(), _objCharacter.Vehicles, out objVehicle);
 				}
 
@@ -722,16 +733,16 @@ namespace Chummer.Backend.Equipment
 			{
 				string strReturn = AmmoCategory;
 				// Get the translated name if applicable.
-				if (GlobalOptions.Instance.Language != "en-us")
-				{
-					XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
-					XmlNode objNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
-					if (objNode != null)
-					{
-						if (objNode.Attributes["translate"] != null)
-							strReturn = objNode.Attributes["translate"].InnerText;
-					}
-				}
+				//if (GlobalOptions.Instance.Language != "en-us")
+				//{
+				//	XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
+				//	XmlNode objNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + _strCategory + "\"]");
+				//	if (objNode != null)
+				//	{
+				//		if (objNode.Attributes["translate"] != null)
+				//			strReturn = objNode.Attributes["translate"].InnerText;
+				//	}
+				//}
 
 				return strReturn;
 			}
@@ -1193,7 +1204,7 @@ namespace Chummer.Backend.Equipment
 			}
 
 			// Factor in the character's Concealability modifiers.
-			ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter);
+			ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
 			intReturn += objImprovementManager.ValueOf(Improvement.ImprovementType.Concealability);
 
 			string strReturn = "";
@@ -1212,19 +1223,19 @@ namespace Chummer.Backend.Equipment
 		{
 			string strReturn = "";
 
-			// If the cost is determined by the Rating, evaluate the expression.
-			XmlDocument objXmlDocument = new XmlDocument();
-			XPathNavigator nav = objXmlDocument.CreateNavigator();
+            // If the cost is determined by the Rating, evaluate the expression.
+            IXmlDocument objXmlDocument = documentFactory.CreateNew();
+			IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 			string strDamage = "";
 			string strDamageExpression = _strDamage;
 			string strDamageType = "";
 			string strDamageExtra = "";
-			XPathExpression xprDamage;
+			IXPathExpression xprDamage;
 
 			if (_objCharacter != null)
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
 
 				if (_blnCyberware)
 				{
@@ -1681,7 +1692,7 @@ namespace Chummer.Backend.Equipment
 						{
 							if (objGear.WeaponBonus["firemode"] != null)
 							{
-								if (objGear.WeaponBonus["firemode"].InnerText.Contains('/'))
+								if (objGear.WeaponBonus["firemode"].InnerText.Contains("/"))
 								{
 									strModes = objGear.WeaponBonus["firemode"].InnerText.Split('/');
 
@@ -1697,7 +1708,7 @@ namespace Chummer.Backend.Equipment
 							if (objGear.WeaponBonus["modereplace"] != null)
 							{
 								lstModes.Clear();
-								if (objGear.WeaponBonus["modereplace"].InnerText.Contains('/'))
+								if (objGear.WeaponBonus["modereplace"].InnerText.Contains("/"))
 								{
 									strModes = objGear.WeaponBonus["modereplace"].InnerText.Split('/');
 								}
@@ -1718,7 +1729,7 @@ namespace Chummer.Backend.Equipment
 							{
 								if (objGear.WeaponBonus["firemode"] != null)
 								{
-									if (objGear.WeaponBonus["firemode"].InnerText.Contains('/'))
+									if (objGear.WeaponBonus["firemode"].InnerText.Contains("/"))
 									{
 										strModes = objGear.WeaponBonus["firemode"].InnerText.Split('/');
 
@@ -1733,7 +1744,7 @@ namespace Chummer.Backend.Equipment
 								}
 								if (objGear.WeaponBonus["firemodereplace"] != null)
 								{
-									if (objGear.WeaponBonus["firemodereplace"].InnerText.Contains('/'))
+									if (objGear.WeaponBonus["firemodereplace"].InnerText.Contains("/"))
 									{
 										lstModes.Clear();
 										strModes = objGear.WeaponBonus["firemode"].InnerText.Split('/');
@@ -1752,7 +1763,7 @@ namespace Chummer.Backend.Equipment
 						{
 							if (objAccessory.FireMode != "")
 							{
-								if (objAccessory.FireMode.Contains('/'))
+								if (objAccessory.FireMode.Contains("/"))
 								{
 									strModes = objAccessory.FireMode.Split('/');
 
@@ -1767,7 +1778,7 @@ namespace Chummer.Backend.Equipment
 							}
 							if (objAccessory.FireModeReplacement != "")
 							{
-								if (objAccessory.FireModeReplacement.Contains('/'))
+								if (objAccessory.FireModeReplacement.Contains("/"))
 								{
 									lstModes.Clear();
 									strModes = objAccessory.FireModeReplacement.Split('/');
@@ -1850,14 +1861,14 @@ namespace Chummer.Backend.Equipment
 		{
 			get
 			{
-				XmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml");
-				XmlNode objAccessoryNode = objXmlDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + _strName + "\"]");
+				IXmlDocument objXmlDocument = XmlManager.Instance.Load("weapons.xml", fileAccess, documentFactory);
+				IXmlNode objAccessoryNode = objXmlDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + _strName + "\"]");
 				string strMounts = "";
-				XmlNodeList objXmlMountList = objAccessoryNode?.SelectNodes("accessorymounts/mount");
+				IXmlNodeList objXmlMountList = objAccessoryNode?.SelectNodes("accessorymounts/mount");
 
 				if (objXmlMountList != null)
 				{
-					foreach (XmlNode objXmlMount in objXmlMountList)
+					foreach (IXmlNode objXmlMount in objXmlMountList)
 					{
 						bool blnFound = false;
 						foreach (WeaponAccessory objAccessory in _lstAccessories)
@@ -1874,7 +1885,7 @@ namespace Chummer.Backend.Equipment
 					}
 
 					// Remove the trailing /
-					if (strMounts != "" && strMounts.Contains('/'))
+					if (strMounts != "" && strMounts.Contains("/"))
 						strMounts = strMounts.Substring(0, strMounts.Length - 1);
 				}
 				return strMounts;
@@ -2036,7 +2047,7 @@ namespace Chummer.Backend.Equipment
 					// If this is an Unarmed Cyberware Weapon (belongs to the Cyberware category), add the Unarmed AP bonus an Adept may have.
 					if (_strCategory == "Cyberware")
 					{
-						ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter);
+						ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
 						intAP += objImprovementManager.ValueOf(Improvement.ImprovementType.UnarmedAP);
 					}
 				}
@@ -2381,19 +2392,19 @@ namespace Chummer.Backend.Equipment
 				{
 					strAccuracy = strAccuracy.Replace("Physical", _objCharacter.LimitPhysical);
 
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
-					XPathExpression xprAccuracy = nav.Compile(strAccuracy);
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+					IXPathNavigator nav = objXmlDocument.CreateNavigator();
+					IXPathExpression xprAccuracy = nav.Compile(strAccuracy);
 					intAccuracy = Convert.ToInt32(nav.Evaluate(xprAccuracy));
 				}
 				else if (strAccuracy.StartsWith("Missile"))
 				{
 					strAccuracy = strAccuracy.Replace("Missile", _objCharacter.LimitPhysical);
 
-					XmlDocument objXmlDocument = new XmlDocument();
-					XPathNavigator nav = objXmlDocument.CreateNavigator();
-					XPathExpression xprAccuracy = nav.Compile(strAccuracy);
-					intAccuracy = Convert.ToInt32(nav.Evaluate(xprAccuracy));
+                    IXmlDocument objXmlDocument = documentFactory.CreateNew();
+                    IXPathNavigator nav = objXmlDocument.CreateNavigator();
+                    IXPathExpression xprAccuracy = nav.Compile(strAccuracy);
+                    intAccuracy = Convert.ToInt32(nav.Evaluate(xprAccuracy));
 				}
 				else
 				{
@@ -2532,7 +2543,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="strFindRange">Range node to use.</param>
 		private int Range(string strFindRange)
 		{
-			XmlDocument objXmlDocument = XmlManager.Instance.Load("ranges.xml");
+			IXmlDocument objXmlDocument = XmlManager.Instance.Load("ranges.xml", fileAccess, documentFactory);
 
 			string strRangeCategory = _strCategory;
 			if (_strRange != "")
@@ -2548,7 +2559,7 @@ namespace Chummer.Backend.Equipment
 				return -1;
 			}
 
-			XPathNavigator nav = objXmlDocument.CreateNavigator();
+			IXPathNavigator nav = objXmlDocument.CreateNavigator();
 
 			int intSTR = _objCharacter.STR.TotalValue;
 			int intBOD = _objCharacter.BOD.TotalValue;
@@ -2556,14 +2567,14 @@ namespace Chummer.Backend.Equipment
 			// If this is a Throwing Weapon, include the ThrowRange bonuses in the character's STR.
 			if (_strCategory == "Throwing Weapons" || _strUseSkill == "Throwing Weapons")
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
 				intSTR += objImprovementManager.ValueOf(Improvement.ImprovementType.ThrowRange);
 			}
 
 			strRange = strRange.Replace("STR", intSTR.ToString());
 			strRange = strRange.Replace("BOD", intBOD.ToString());
 
-			XPathExpression xprRange = nav.Compile(strRange);
+			IXPathExpression xprRange = nav.Compile(strRange);
 
 			double dblReturn = Convert.ToDouble(nav.Evaluate(xprRange).ToString(), GlobalOptions.Instance.CultureInfo) * _dblRangeMultiplier;
 			int intReturn = Convert.ToInt32(Math.Ceiling(dblReturn));
@@ -3102,7 +3113,7 @@ namespace Chummer.Backend.Equipment
 			internal int Ammo { get; set; }
 			public string AmmoName { get; internal set; }
 
-			internal static Clip Load(XmlNode node)
+			internal static Clip Load(IXmlNode node)
 			{
 				return new Clip(Guid.Parse(node["id"].InnerText), int.Parse(node["count"].InnerText));
 			}

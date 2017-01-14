@@ -1,3 +1,4 @@
+using ShadowrunEngine.ChummerInterfaces;
 using System.Collections;
 using System.Collections.Generic;
 using System.Xml;
@@ -16,16 +17,16 @@ namespace Chummer.Backend.Equipment
 		/// Fill the list of CyberwareGrades from the XML files.
 		/// </summary>
 		/// <param name="objSource">Source to load the Grades from, either Bioware or Cyberware.</param>
-		public void LoadList(Improvement.ImprovementSource objSource)
+		public void LoadList(Improvement.ImprovementSource objSource, IFileAccess fileAccess, IXmlDocumentFactory documentFactory)
 		{
 			string strXmlFile = "";
 			if (objSource == Improvement.ImprovementSource.Bioware)
 				strXmlFile = "bioware.xml";
 			else
 				strXmlFile = "cyberware.xml";
-			XmlDocument objXMlDocument = XmlManager.Instance.Load(strXmlFile);
+			IXmlDocument objXMlDocument = XmlManager.Instance.Load(strXmlFile, fileAccess, documentFactory);
 			
-			foreach (XmlNode objNode in objXMlDocument.SelectNodes("/chummer/grades/grade"))
+			foreach (IXmlNode objNode in objXMlDocument.SelectNodes("/chummer/grades/grade"))
 			{
 				Grade objGrade = new Grade();
 				objGrade.Load(objNode);

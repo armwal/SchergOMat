@@ -3,33 +3,32 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml;
-using Chummer;
+using Chummer.Datastructures;
+using ShadowrunEngine.ChummerInterfaces;
 
 namespace Chummer.Skills
 { 
 	class ExoticSkill : Skill
 	{
-		private static TranslatedField<string> _specificTranslator = new TranslatedField<string>();
+		private TranslatedField<string> _specificTranslator = new TranslatedField<string>();
 		private string _specific;
 		private string _translated;
 
-		static ExoticSkill()
-		{
-			IXmlNodeList exotic = 
-				 XmlManager.Instance.Load("weapons.xml").SelectNodes("/chummer/weapons/weapon");
-
-			var elem = exotic.OfType<IXmlNode>()
-				.Select(
-					x => new Tuple<string, string>(x["name"].InnerText, x.Attributes["translate"]?.InnerText ?? x["name"].InnerText));
-
-			_specificTranslator.AddRange(elem);
-		}
-
-
-		public ExoticSkill(Character character, IXmlNode node) : base(character, node)
-		{
+		//static ExoticSkill()
+		//{
 			
-		}
+		//}
+		public ExoticSkill(Character character, IXmlNode node, IFileAccess fileAccess, IXmlDocumentFactory documentFactory) : base(character, node)
+		{
+            IXmlNodeList exotic =
+                 XmlManager.Instance.Load("weapons.xml", fileAccess, documentFactory).SelectNodes("/chummer/weapons/weapon");
+
+            var elem = exotic.OfType<IXmlNode>()
+                .Select(
+                    x => new Tuple<string, string>(x["name"].InnerText, x.Attributes["translate"]?.InnerText ?? x["name"].InnerText));
+
+            _specificTranslator.AddRange(elem);
+        }
 
 		public void Load(IXmlNode node)
 		{
