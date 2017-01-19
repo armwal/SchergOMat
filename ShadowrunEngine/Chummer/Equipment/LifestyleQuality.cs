@@ -29,6 +29,7 @@ namespace Chummer.Backend.Equipment
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         #region Helper Methods
         /// <summary>
@@ -63,7 +64,7 @@ namespace Chummer.Backend.Equipment
 		#endregion
 
 		#region Constructor, Create, Save, Load, and Print Methods
-		public LifestyleQuality(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+		public LifestyleQuality(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new LifestyleQuality.
 			_guiID = Guid.NewGuid();
@@ -71,6 +72,7 @@ namespace Chummer.Backend.Equipment
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
 		/// <summary>
@@ -129,7 +131,7 @@ namespace Chummer.Backend.Equipment
 			// If the item grants a bonus, pass the information to the Improvement Manager.
 			if (objXmlLifestyleQuality.InnerXml.Contains("<bonus>"))
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.Quality, _guiID.ToString(), objXmlLifestyleQuality["bonus"], false, 1, DisplayNameShort))
 				{
 					_guiID = Guid.Empty;
@@ -235,7 +237,7 @@ namespace Chummer.Backend.Equipment
 			{
 				objWriter.WriteStartElement("lifestylequality");
 				objWriter.WriteElementString("name", DisplayNameShort);
-				objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra));
+				objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess));
 				objWriter.WriteElementString("lp", _intLP.ToString());
 				objWriter.WriteElementString("cost", _intCost.ToString());
 				string strLifestyleQualityType = _objLifestyleQualityType.ToString();
@@ -431,11 +433,11 @@ namespace Chummer.Backend.Equipment
 						if (LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") != "")
 							strReturn += " (" + LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") + ")";
 						else
-							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 					catch
 					{
-						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 				}
 				return strReturn;

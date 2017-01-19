@@ -16,7 +16,8 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
-﻿using System;
+using ShadowrunEngine.ChummerInterfaces;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -585,7 +586,7 @@ namespace Chummer
 		/// Attempt to translate any Extra text for an item.
 		/// </summary>
 		/// <param name="strExtra">Extra string to translate.</param>
-		public string TranslateExtra(string strExtra)
+		public string TranslateExtra(string strExtra, IXmlDocumentFactory documentFactory, IFileAccess fileAccess)
 		{
 			string strReturn = "";
 
@@ -595,7 +596,7 @@ namespace Chummer
                 IXmlDocument objXmlDocument = documentFactory.CreateNew();
 
 				// Look in Weapon Categories.
-				objXmlDocument = XmlManager.Instance.Load("weapons.xml");
+				objXmlDocument = XmlManager.Instance.Load("weapons.xml", fileAccess, documentFactory);
 				IXmlNode objNode = objXmlDocument.SelectSingleNode("/chummer/categories/category[. = \"" + strExtra.Replace("\"", string.Empty) + "\"]");
 				if (objNode != null)
 				{
@@ -618,7 +619,7 @@ namespace Chummer
 				}
 
 				// Look in Skills.
-				objXmlDocument = XmlManager.Instance.Load("skills.xml");
+				objXmlDocument = XmlManager.Instance.Load("skills.xml", fileAccess, documentFactory);
 				objNode = objXmlDocument.SelectSingleNode("/chummer/skills/skill[name = \"" + strExtra.Replace("\"", string.Empty) + "\"]");
 				if (objNode != null)
 				{
@@ -653,7 +654,7 @@ namespace Chummer
 				}
 
 				// Look in Licences.
-				objXmlDocument = XmlManager.Instance.Load("licenses.xml");
+				objXmlDocument = XmlManager.Instance.Load("licenses.xml", fileAccess, documentFactory);
 				objNode = objXmlDocument.SelectSingleNode("/chummer/licenses/license[. = \"" + strExtra.Replace("\"", string.Empty) + "\"]");
 				if (objNode != null)
 				{
@@ -665,7 +666,7 @@ namespace Chummer
 				}
 
 				// Look in Mentors.
-				objXmlDocument = XmlManager.Instance.Load("mentors.xml");
+				objXmlDocument = XmlManager.Instance.Load("mentors.xml", fileAccess, documentFactory);
 				objNode = objXmlDocument.SelectSingleNode("/chummer/mentors/mentor[name = \"" + strExtra.Replace("\"", string.Empty) + "\"]");
 				if (objNode != null)
 				{
@@ -686,7 +687,7 @@ namespace Chummer
 				}
 
 				// Look in Paragons.
-				objXmlDocument = XmlManager.Instance.Load("paragons.xml");
+				objXmlDocument = XmlManager.Instance.Load("paragons.xml", fileAccess, documentFactory);
 				objNode = objXmlDocument.SelectSingleNode("/chummer/mentors/mentor[name = \"" + strExtra.Replace("\"", string.Empty) + "\"]");
 				if (objNode != null)
 				{

@@ -16,12 +16,13 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-﻿using System.Xml;
- using Chummer.Backend.Equipment;
+using System.Xml;
+using Chummer.Backend.Equipment;
+using ShadowrunEngine.ChummerInterfaces;
 
 // MRUChanged Event Handler.
 public delegate void MRUChangedHandler();
@@ -121,8 +122,8 @@ namespace Chummer
         private IXmlDocument _objXmlClipboard;// = new XmlDocument();
 		private ClipboardContentType _objClipboardContentType = new ClipboardContentType();
 
-		public static GradeList CyberwareGrades = new GradeList();
-		public static GradeList BiowareGrades = new GradeList();
+		private static GradeList cyberwareGrades;
+		private static GradeList biowareGrades;
 
 		// PDF information.
 		public static string _strPDFAppPath = "";
@@ -335,9 +336,6 @@ namespace Chummer
 			//	{
 			//	}
 			//}
-
-			CyberwareGrades.LoadList(Improvement.ImprovementSource.Cyberware);
-			BiowareGrades.LoadList(Improvement.ImprovementSource.Bioware);
 		}
 
 		
@@ -863,5 +861,24 @@ namespace Chummer
 		//}
 		//#endregion
 
-	}
+        public static GradeList GetCyberwareGrades(IXmlDocumentFactory documentFactory, IFileAccess fileAccess)
+        {
+            if (cyberwareGrades == null)
+            {
+                cyberwareGrades = new GradeList();
+                cyberwareGrades.LoadList(Improvement.ImprovementSource.Cyberware, fileAccess, documentFactory);
+            }
+            return cyberwareGrades;
+        }
+
+        public static GradeList GetBiowareGrades(IXmlDocumentFactory documentFactory, IFileAccess fileAccess)
+        {
+            if (biowareGrades == null)
+            {
+                biowareGrades = new GradeList();
+                biowareGrades.LoadList(Improvement.ImprovementSource.Bioware, fileAccess, documentFactory);
+            }
+            return biowareGrades;
+        }
+    }
 }

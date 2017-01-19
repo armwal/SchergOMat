@@ -64,23 +64,23 @@ namespace Chummer.Backend.Equipment
 		{
 			if (objSource == Improvement.ImprovementSource.Bioware)
 			{
-				foreach (Grade objGrade in GlobalOptions.BiowareGrades)
+				foreach (Grade objGrade in GlobalOptions.GetBiowareGrades(documentFactory, fileAccess))
 				{
 					if (objGrade.Name == strValue)
 						return objGrade;
 				}
 
-				return GlobalOptions.BiowareGrades.GetGrade("Standard");
+				return GlobalOptions.GetBiowareGrades(documentFactory, fileAccess).GetGrade("Standard");
 			}
 			else
 			{
-				foreach (Grade objGrade in GlobalOptions.CyberwareGrades)
+				foreach (Grade objGrade in GlobalOptions.GetCyberwareGrades(documentFactory, fileAccess))
 				{
 					if (objGrade.Name == strValue)
 						return objGrade;
 				}
 
-				return GlobalOptions.CyberwareGrades.GetGrade("Standard");
+				return GlobalOptions.GetCyberwareGrades(documentFactory, fileAccess).GetGrade("Standard");
 			}
 		}
 		#endregion
@@ -276,7 +276,7 @@ namespace Chummer.Backend.Equipment
 			// If the piece grants a bonus, pass the information to the Improvement Manager.
 			if (objXmlCyberware["bonus"] != null && blnCreateImprovements)
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (strForced != "")
 					objImprovementManager.ForcedValue = strForced;
 
@@ -333,7 +333,7 @@ namespace Chummer.Backend.Equipment
 					// If there are any bonuses, create the Improvements for them.
 					if (objXmlSubsystem["bonus"] != null)
 					{
-						ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory,messageDisplay,displayFactory);
+						ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory,messageDisplay,displayFactory, fileAccess);
 						if (!objImprovementManager.CreateImprovements(objSource, objSubsystem.InternalId, objXmlSubsystem.SelectSingleNode("bonus"), false, 1, objSubsystem.DisplayNameShort))
 						{
 							objSubsystem._guiID = Guid.Empty;
@@ -430,7 +430,7 @@ namespace Chummer.Backend.Equipment
 		/// <param name="objNode">XmlNode to load.</param>
 		public void Load(IXmlNode objNode, bool blnCopy = false)
 		{
-			Improvement objImprovement = new Improvement(displayFactory);
+			Improvement objImprovement = new Improvement(documentFactory, messageDisplay, displayFactory, fileAccess);
 
 			objNode.TryGetField("sourceid", Guid.TryParse, out _sourceID);
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
@@ -762,11 +762,11 @@ namespace Chummer.Backend.Equipment
 						if (LanguageManager.Instance.GetString("String_Attribute" + _strLocation + "Short") != "")
 							strReturn += " (" + LanguageManager.Instance.GetString("String_Attribute" + _strLocation + "Short") + ")";
 						else
-							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strLocation) + ")";
+							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strLocation, documentFactory, fileAccess) + ")";
 					}
 					catch
 					{
-						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strLocation) + ")";
+						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strLocation, documentFactory, fileAccess) + ")";
 					}
 				}
 				return strReturn;
@@ -1502,7 +1502,7 @@ namespace Chummer.Backend.Equipment
 					decESSMultiplier *= (1.0m - decDiscount);
 				}
 
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 				// Retrieve the Bioware or Cyberware ESS Cost Multiplier. Bioware Modifiers do not apply to Genetech.
 				double dblMultiplier = 1;
@@ -1682,7 +1682,7 @@ namespace Chummer.Backend.Equipment
 
 				// Retrieve the Genetech Cost Multiplier if available.
 				double dblMultiplier = 1;
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (objImprovementManager.ValueOf(Improvement.ImprovementType.GenetechCostMultiplier) != 0 && _objImprovementSource == Improvement.ImprovementSource.Bioware && _strCategory.StartsWith("Genetech"))
 				{
 					foreach (Improvement objImprovement in _objCharacter.Improvements)
@@ -1841,7 +1841,7 @@ namespace Chummer.Backend.Equipment
 
 				// Retrieve the Genetech Cost Multiplier if available.
 				double dblMultiplier = 1;
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (objImprovementManager.ValueOf(Improvement.ImprovementType.GenetechCostMultiplier) != 0 && _objImprovementSource == Improvement.ImprovementSource.Bioware && _strCategory.StartsWith("Genetech"))
 				{
 					foreach (Improvement objImprovement in _objCharacter.Improvements)

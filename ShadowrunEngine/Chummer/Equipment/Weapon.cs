@@ -233,7 +233,7 @@ namespace Chummer.Backend.Equipment
 				{
 					IXmlNode objXmlAccessory = objXmlDocument.SelectSingleNode("/chummer/accessories/accessory[name = \"" + objXmlWeaponAccessory["name"].InnerText + "\"]");
                     ITreeNode objAccessoryNode = displayFactory.CreateTreeNode();
-					WeaponAccessory objAccessory = new WeaponAccessory(_objCharacter);
+					WeaponAccessory objAccessory = new WeaponAccessory(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					int intAccessoryRating = 0;
 					if (objXmlWeaponAccessory.InnerXml.Contains("<rating>"))
 					{
@@ -435,7 +435,7 @@ namespace Chummer.Backend.Equipment
 				IXmlNodeList nodChildren = objNode.SelectNodes("accessories/accessory");
 				foreach (IXmlNode nodChild in nodChildren)
 				{
-					WeaponAccessory objAccessory = new WeaponAccessory(_objCharacter);
+					WeaponAccessory objAccessory = new WeaponAccessory(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objAccessory.Load(nodChild, blnCopy);
 					objAccessory.Parent = this;
 					_lstAccessories.Add(objAccessory);
@@ -471,7 +471,7 @@ namespace Chummer.Backend.Equipment
 		public void Print(IXmlWriter objWriter)
 		{
 			// Find the piece of Gear that created this item if applicable.
-			CommonFunctions objFunctions = new CommonFunctions(_objCharacter);
+			CommonFunctions objFunctions = new CommonFunctions(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			Gear objGear = objFunctions.FindGearByWeaponID(_guiID.ToString(), _objCharacter.Gear);
 
 			objWriter.WriteStartElement("weapon");
@@ -570,7 +570,7 @@ namespace Chummer.Backend.Equipment
 				return "";
 			else
 			{
-				CommonFunctions objFunctions = new CommonFunctions(_objCharacter);
+				CommonFunctions objFunctions = new CommonFunctions(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				Gear objAmmo = objFunctions.FindGear(guiAmmo.ToString(), _objCharacter.Gear);
 				if (objAmmo == null)
 				{
@@ -1204,7 +1204,7 @@ namespace Chummer.Backend.Equipment
 			}
 
 			// Factor in the character's Concealability modifiers.
-			ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+			ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			intReturn += objImprovementManager.ValueOf(Improvement.ImprovementType.Concealability);
 
 			string strReturn = "";
@@ -1235,7 +1235,7 @@ namespace Chummer.Backend.Equipment
 
 			if (_objCharacter != null)
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 				if (_blnCyberware)
 				{
@@ -1414,7 +1414,7 @@ namespace Chummer.Backend.Equipment
 
 			try
 			{
-				CommonFunctions objFunctions = new CommonFunctions(_objCharacter);
+				CommonFunctions objFunctions = new CommonFunctions(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				CharacterOptions objOptions = _objCharacter.Options;
 				int intBonus = 0;
 				if (objOptions.MoreLethalGameplay)
@@ -1678,7 +1678,7 @@ namespace Chummer.Backend.Equipment
 				// Check if the Weapon has Ammunition loaded and look for any Damage bonus/replacement.
 				if (AmmoLoaded != "")
 				{
-					CommonFunctions objFunctions = new CommonFunctions(_objCharacter);
+					CommonFunctions objFunctions = new CommonFunctions(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					// Look for Ammo on the character.
 					Gear objGear = objFunctions.FindGear(AmmoLoaded, _objCharacter.Gear);
 					if (objGear == null)
@@ -1981,7 +1981,7 @@ namespace Chummer.Backend.Equipment
 				}
 
 				bool blnAPReplaced = false;
-				CommonFunctions objFunctions = new CommonFunctions(_objCharacter);
+				CommonFunctions objFunctions = new CommonFunctions(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 				// Check if the Weapon has Ammunition loaded and look for any Damage bonus/replacement.
 				if (AmmoLoaded != "")
@@ -2047,7 +2047,7 @@ namespace Chummer.Backend.Equipment
 					// If this is an Unarmed Cyberware Weapon (belongs to the Cyberware category), add the Unarmed AP bonus an Adept may have.
 					if (_strCategory == "Cyberware")
 					{
-						ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+						ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 						intAP += objImprovementManager.ValueOf(Improvement.ImprovementType.UnarmedAP);
 					}
 				}
@@ -2166,7 +2166,7 @@ namespace Chummer.Backend.Equipment
 					intRCBase = 0;
 				}
 
-				CommonFunctions objFunctions = new CommonFunctions(_objCharacter);
+				CommonFunctions objFunctions = new CommonFunctions(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 				// Check if the Weapon has Ammunition loaded and look for any Recoil bonus.
 				if (AmmoLoaded != "" && AmmoLoaded != "00000000-0000-0000-0000-000000000000")
@@ -2567,7 +2567,7 @@ namespace Chummer.Backend.Equipment
 			// If this is a Throwing Weapon, include the ThrowRange bonuses in the character's STR.
 			if (_strCategory == "Throwing Weapons" || _strUseSkill == "Throwing Weapons")
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				intSTR += objImprovementManager.ValueOf(Improvement.ImprovementType.ThrowRange);
 			}
 
@@ -2598,7 +2598,7 @@ namespace Chummer.Backend.Equipment
 				// Check if the Weapon has Ammunition loaded and look for any Range bonus.
 				if (AmmoLoaded != "")
 				{
-					CommonFunctions objFunctions = new CommonFunctions(_objCharacter);
+					CommonFunctions objFunctions = new CommonFunctions(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 					Gear objGear = objFunctions.FindGear(AmmoLoaded, _objCharacter.Gear);
 					if (objGear == null)

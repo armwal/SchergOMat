@@ -18,7 +18,8 @@ namespace Chummer.Skills
 		//{
 			
 		//}
-		public ExoticSkill(Character character, IXmlNode node, IFileAccess fileAccess, IXmlDocumentFactory documentFactory) : base(character, node)
+		public ExoticSkill(Character character, IXmlNode node, IFileAccess fileAccess, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory) 
+            : base(character, node, documentFactory, messageDisplay, displayFactory, fileAccess)
 		{
             IXmlNodeList exotic =
                  XmlManager.Instance.Load("weapons.xml", fileAccess, documentFactory).SelectNodes("/chummer/weapons/weapon");

@@ -131,7 +131,7 @@ namespace Chummer.Backend.Equipment
 
 			if (objXmlArmorNode["bonus"] != null && !blnSkipCost)
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.Armor, _guiID.ToString(), objXmlArmorNode["bonus"], false, 1, DisplayNameShort))
 				{
 					_guiID = Guid.Empty;
@@ -438,7 +438,7 @@ namespace Chummer.Backend.Equipment
 				}
 			}
 			objWriter.WriteEndElement();
-			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra));
+			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess));
 			objWriter.WriteElementString("location", _strLocation);
 			if (_objCharacter.Options.PrintNotes)
 				objWriter.WriteElementString("notes", _strNotes);
@@ -1274,7 +1274,7 @@ namespace Chummer.Backend.Equipment
 				if (_intRating > 0)
 					strReturn += " (" + LanguageManager.Instance.GetString("String_Rating") + " " + _intRating.ToString() + ")";
 				if (_strExtra != "")
-					strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+					strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 				return strReturn;
 			}
 		}

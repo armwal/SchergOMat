@@ -203,7 +203,7 @@ namespace Chummer.Backend.Equipment
 			IXmlNodeList objXmlNodeList = objNode.SelectNodes("lifestylequalities/lifestylequality");
 			foreach (IXmlNode objXmlQuality in objXmlNodeList)
 			{
-				LifestyleQuality objQuality = new LifestyleQuality(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				LifestyleQuality objQuality = new LifestyleQuality(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				objQuality.Load(objXmlQuality);
 				_lstLifestyleQualities.Add(objQuality);
 			}
@@ -212,7 +212,7 @@ namespace Chummer.Backend.Equipment
 			objXmlNodeList = objNode.SelectNodes("freegrids/lifestylequality");
 			foreach (IXmlNode objXmlQuality in objXmlNodeList)
 			{
-				LifestyleQuality objQuality = new LifestyleQuality(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				LifestyleQuality objQuality = new LifestyleQuality(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				objQuality.Load(objXmlQuality);
 				_lstLifestyleQualities.Add(objQuality);
 			}
@@ -813,7 +813,7 @@ namespace Chummer.Backend.Equipment
 					return intReturn;
 				}
 				IXmlDocument objXmlDocument = XmlManager.Instance.Load("lifestyles.xml", fileAccess, documentFactory);
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				decimal decMultiplier = 1;
 				decMultiplier = Convert.ToDecimal(objImprovementManager.ValueOf(Improvement.ImprovementType.LifestyleCost), GlobalOptions.Instance.CultureInfo);
 				if (_objType == LifestyleType.Standard)

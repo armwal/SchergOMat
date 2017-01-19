@@ -29,6 +29,7 @@ using Chummer.Backend;
 using Chummer.Backend.Equipment;
 using Chummer.Classes;
 using Chummer.Skills;
+using ShadowrunEngine.ChummerInterfaces;
 
 namespace Chummer
 {
@@ -233,9 +234,9 @@ namespace Chummer
 
         private CommonFunctions objFunctions;// = new CommonFunctions();
 
-        public Improvement(IDisplayFactory displayFactory)
+        public Improvement(IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
         {
-            objFunctions = new CommonFunctions(displayFactory);
+            objFunctions = new CommonFunctions(documentFactory, messageDisplay, displayFactory, fileAccess);
         }
 
 		#region Helper Methods
@@ -577,13 +578,16 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
-		public ImprovementManager(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+        public ImprovementManager(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
-			LanguageManager.Instance.Load(GlobalOptions.Instance.Language, null, documentFactory, messageDisplay);
-			_objCharacter = objCharacter;
+            this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
+            //LanguageManager.Instance.Load(GlobalOptions.Instance.Language, null, documentFactory, messageDisplay);
+            _objCharacter = objCharacter;
 		}
 
 		#region Properties
@@ -1067,7 +1071,7 @@ namespace Chummer
 
 				AddImprovementCollection container = new AddImprovementCollection(_objCharacter, this, objImprovementSource,
 					strSourceName, strUnique, _strForcedValue, _strLimitSelection, SelectedValue, blnConcatSelectedValue,
-					strFriendlyName, intRating, ValueToInt, Rollback);
+					strFriendlyName, intRating, ValueToInt, Rollback, messageDisplay, displayFactory, documentFactory, fileAccess);
 
 				MethodInfo info;
 				if (AddMethods.Value.TryGetValue(bonusNode.Name.ToUpperInvariant(), out info))
@@ -1178,7 +1182,7 @@ namespace Chummer
 	                try
 	                {
                         IXmlDocument objXmlMentorDocument = documentFactory.CreateNew();
-		                objXmlMentorDocument = XmlManager.Instance.Load("mentors.xml");
+		                objXmlMentorDocument = XmlManager.Instance.Load("mentors.xml", fileAccess, documentFactory);
 		                IXmlNode objXmlMentorBonus =
 			                objXmlMentorDocument.SelectSingleNode("/chummer/mentors/mentor/choices/choice[name = \"" +
 			                                                      objImprovement.Notes +
@@ -1188,7 +1192,7 @@ namespace Chummer
 		                {
                             // Get the Power information
                             IXmlDocument objXmlDocument = documentFactory.CreateNew();
-			                objXmlDocument = XmlManager.Instance.Load("powers.xml");
+			                objXmlDocument = XmlManager.Instance.Load("powers.xml", fileAccess, documentFactory);
 
 			                string strPowerName = objXmlSpecificPower["name"].InnerText;
 
@@ -1933,9 +1937,9 @@ namespace Chummer
 								// Determine which GradeList to use for the Cyberware.
 								GradeList objGradeList;
 								if (objCyberware.SourceType == Improvement.ImprovementSource.Bioware)
-									objGradeList = GlobalOptions.BiowareGrades;
+									objGradeList = GlobalOptions.GetBiowareGrades(documentFactory, fileAccess);
 								else
-									objGradeList = GlobalOptions.CyberwareGrades;
+									objGradeList = GlobalOptions.GetCyberwareGrades(documentFactory, fileAccess);
 
 								objCyberware.Grade = objGradeList.GetGrade(objCyberware.Grade.Name.Replace("(Adapsin)", string.Empty).Trim());
 							}
@@ -2041,7 +2045,7 @@ namespace Chummer
 			//	"blnAddToRating = " + blnAddToRating.ToString());
             
             // Record the improvement.
-			Improvement objImprovement = new Improvement(displayFactory);
+			Improvement objImprovement = new Improvement(documentFactory, messageDisplay, displayFactory, fileAccess);
 			objImprovement.ImprovedName = strImprovedName;
 			objImprovement.ImproveSource = objImprovementSource;
 			objImprovement.SourceName = strSourceName;

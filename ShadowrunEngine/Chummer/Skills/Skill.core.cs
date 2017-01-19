@@ -313,7 +313,7 @@ namespace Chummer.Skills
 		{
 			get
 			{
-				return Math.Min(0, new ImprovementManager(_character).ValueOf(Improvement.ImprovementType.ConditionMonitor));
+				return Math.Min(0, new ImprovementManager(_character, documentFactory, messageDisplay, displayFactory, fileAccess).ValueOf(Improvement.ImprovementType.ConditionMonitor));
 			}
 		}
 

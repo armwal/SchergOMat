@@ -16,7 +16,7 @@
  *  You can obtain the full source code for Chummer5a at
  *  https://github.com/chummer5a/chummer5a
  */
- using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -24,14 +24,15 @@ using System.Diagnostics;
 //using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
- using System.Text;
- using System.Threading;
- //using System.Windows.Forms;
+using System.Text;
+using System.Threading;
+//using System.Windows.Forms;
 using System.Xml;
 //using System.Xml.XPath;
 //using Chummer.Annotations;
- using Chummer.Backend.Equipment;
- using Chummer.Skills;
+using Chummer.Backend.Equipment;
+using Chummer.Skills;
+using ShadowrunEngine.ChummerInterfaces;
 
 namespace Chummer
 {
@@ -54,6 +55,7 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -62,11 +64,12 @@ namespace Chummer
 		/// Character CharacterAttribute.
 		/// </summary>
 		/// <param name="strAbbrev">CharacterAttribute abbreviation.</param>
-		public CharacterAttrib(string strAbbrev, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+		public CharacterAttrib(string strAbbrev, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
 
 			_strAbbrev = strAbbrev;
 		}
@@ -232,12 +235,12 @@ namespace Chummer
 			get
 			{
 				//This amount of object allocation is uglier than the US national dept, but improvementmanager is due for a rewrite anyway
-				ImprovementManager _objImprovement = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager _objImprovement = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				return _intValue + MetatypeMinimum + Math.Min(_objImprovement.ValueOf(Improvement.ImprovementType.Attributelevel, false, Abbrev),MetatypeMaximum - MetatypeMinimum);
 			}
 			set
 			{
-				ImprovementManager _objImprovement = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager _objImprovement = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 				_intValue = value - (MetatypeMinimum + Math.Min(_objImprovement.ValueOf(Improvement.ImprovementType.Attributelevel, false, Abbrev), MetatypeMaximum - MetatypeMinimum));
 				OnPropertyChanged();
@@ -1117,6 +1120,7 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         public String Stage
 		{
@@ -1165,7 +1169,7 @@ namespace Chummer
 		#endregion
 
 		#region Constructor, Create, Save, Load, and Print Methods
-		public Quality(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+		public Quality(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Quality.
 			_guiID = Guid.NewGuid();
@@ -1174,6 +1178,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
 		}
 
 		/// <summary>
@@ -1278,7 +1283,7 @@ namespace Chummer
 			// Add Weapons if applicable.
 			if (objXmlQuality.InnerXml.Contains("<addweapon>"))
 			{
-				IXmlDocument objXmlWeaponDocument = XmlManager.Instance.Load("weapons.xml");
+				IXmlDocument objXmlWeaponDocument = XmlManager.Instance.Load("weapons.xml", fileAccess, documentFactory);
 
 				// More than one Weapon can be added, so loop through all occurrences.
 				foreach (IXmlNode objXmlAddWeapon in objXmlQuality.SelectNodes("addweapon"))
@@ -1286,7 +1291,7 @@ namespace Chummer
 					IXmlNode objXmlWeapon = objXmlWeaponDocument.SelectSingleNode("/chummer/weapons/weapon[name = \"" + objXmlAddWeapon.InnerText + "\" and starts-with(category, \"Quality\")]");
 
                     ITreeNode objGearWeaponNode = displayFactory.CreateTreeNode();
-					Weapon objGearWeapon = new Weapon(objCharacter);
+					Weapon objGearWeapon = new Weapon(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objGearWeapon.Create(objXmlWeapon, objCharacter, objGearWeaponNode, null, null);
 					//objGearWeaponNode.ForeColor = SystemColors.GrayText;
 					objWeaponNodes.Add(objGearWeaponNode);
@@ -1301,7 +1306,7 @@ namespace Chummer
 				foreach (IXmlNode objXmlNaturalWeapon in objXmlQuality["naturalweapons"].SelectNodes("naturalweapon"))
 				{
                     ITreeNode objGearWeaponNode = displayFactory.CreateTreeNode();
-					Weapon objWeapon = new Weapon(_objCharacter);
+					Weapon objWeapon = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objWeapon.Name = objXmlNaturalWeapon["name"].InnerText;
 					objWeapon.Category = LanguageManager.Instance.GetString("Tab_Critter");
 					objWeapon.WeaponType = "Melee";
@@ -1329,7 +1334,7 @@ namespace Chummer
 			// If the item grants a bonus, pass the information to the Improvement Manager.
 			if (objXmlQuality.InnerXml.Contains("<bonus>"))
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				objImprovementManager.ForcedValue = strForceValue;
 				if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.Quality, _guiID.ToString(), objXmlQuality["bonus"], false, 1, DisplayNameShort))
 				{
@@ -1460,7 +1465,7 @@ namespace Chummer
 			{
 				objWriter.WriteStartElement("quality");
 				objWriter.WriteElementString("name", DisplayNameShort);
-				objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra));
+				objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess));
 				objWriter.WriteElementString("bp", _intBP.ToString());
 				string strQualityType = _objQualityType.ToString();
 				//if (GlobalOptions.Instance.Language != "en-us")
@@ -1692,11 +1697,11 @@ namespace Chummer
 						if (LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") != "")
 							strReturn += " (" + LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") + ")";
 						else
-							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 					catch
 					{
-						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 				}
 				return strReturn;
@@ -2048,9 +2053,9 @@ namespace Chummer
 		/// </summary>
 		/// <param name="id">ID of the node</param>
 		/// <returns>A XmlNode containing the id and all nodes of its parrents</returns>
-		public static IXmlNode GetNodeOverrideable(string id)
+		public static IXmlNode GetNodeOverrideable(string id, IFileAccess fileAccess, IXmlDocumentFactory documentFactory)
 		{
-			IXmlDocument xmlDocument = XmlManager.Instance.Load("lifemodules.xml");
+			IXmlDocument xmlDocument = XmlManager.Instance.Load("lifemodules.xml", fileAccess, documentFactory);
 			IXmlNode node = xmlDocument.SelectSingleNode("//*[id = \"" + id + "\"]");
 			return GetNodeOverrideable(node);
 		}
@@ -2116,12 +2121,15 @@ namespace Chummer
 		private string _strNotes = "";
 		private readonly Character _objCharacter;
 
-		#region Helper Methods
-		/// <summary>
-		/// Convert a string to a SpiritType.
-		/// </summary>
-		/// <param name="strValue">String value to convert.</param>
-		public SpiritType ConvertToSpiritType(string strValue)
+        private IXmlDocumentFactory documentFactory;
+        private IFileAccess fileAccess;
+
+        #region Helper Methods
+        /// <summary>
+        /// Convert a string to a SpiritType.
+        /// </summary>
+        /// <param name="strValue">String value to convert.</param>
+        public SpiritType ConvertToSpiritType(string strValue)
 		{
 			switch (strValue)
 			{
@@ -2134,11 +2142,14 @@ namespace Chummer
 		#endregion
 
 		#region Constructor, Save, Load, and Print Methods
-		public Spirit(Character objCharacter)
+		public Spirit(Character objCharacter, IXmlDocumentFactory documentFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Spirit.
 			_objCharacter = objCharacter;
-		}
+
+            this.documentFactory = documentFactory;
+            this.fileAccess = fileAccess;
+        }
 
 		/// <summary>
 		/// Save the object's XML to the XmlWriter.
@@ -2186,9 +2197,9 @@ namespace Chummer
 			string strName = _strName;
 			IXmlDocument objXmlDocument;
 			if (_objEntityType == SpiritType.Spirit)
-				objXmlDocument = XmlManager.Instance.Load("traditions.xml");
+				objXmlDocument = XmlManager.Instance.Load("traditions.xml", fileAccess, documentFactory);
 			else
-				objXmlDocument = XmlManager.Instance.Load("streams.xml");
+				objXmlDocument = XmlManager.Instance.Load("streams.xml", fileAccess, documentFactory);
 			IXmlNode objXmlCritterNode = objXmlDocument.SelectSingleNode("/chummer/spirits/spirit[name = \"" + strName + "\"]");
 			//if (GlobalOptions.Instance.Language != "en-us")
 			//{
@@ -2240,7 +2251,7 @@ namespace Chummer
 
 				//Dump skills, (optional)powers if present to output
 
-				IXmlDocument objXmlPowersDocument = XmlManager.Instance.Load("spiritpowers.xml");
+				IXmlDocument objXmlPowersDocument = XmlManager.Instance.Load("spiritpowers.xml", fileAccess, documentFactory);
 				if (objXmlCritterNode["powers"] != null)
 				{
 					//objWriter.WriteRaw(objXmlCritterNode["powers"].OuterXml);
@@ -2510,9 +2521,10 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
 		#region Constructor, Create, Save, Load, and Print Methods
-		public Spell(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+		public Spell(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Spell.
 			_guiID = Guid.NewGuid();
@@ -2521,6 +2533,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
 		}
 
 		/// Create a Spell from an XmlNode and return the TreeNodes for it.
@@ -2579,7 +2592,7 @@ namespace Chummer
             }
             _strDV = strDV;
 
-			ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+			ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			objImprovementManager.ForcedValue = strForcedValue;
 
 			//if (GlobalOptions.Instance.Language != "en-us")
@@ -2657,7 +2670,7 @@ namespace Chummer
 		/// <param name="objNode">XmlNode to load.</param>
 		public void Load(IXmlNode objNode)
 		{
-            Improvement objImprovement = new Improvement(displayFactory);
+            Improvement objImprovement = new Improvement(documentFactory, messageDisplay, displayFactory, fileAccess);
             _guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
 			_strDescriptors = objNode["descriptors"].InnerText;
@@ -2765,7 +2778,7 @@ namespace Chummer
 			objWriter.WriteElementString("dv", DisplayDV);
 			objWriter.WriteElementString("source", _objCharacter.Options.LanguageBookShort(_strSource));
 			objWriter.WriteElementString("page", Page);
-			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra));
+			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess));
 			if (_objCharacter.Options.PrintNotes)
 				objWriter.WriteElementString("notes", _strNotes);
 			objWriter.WriteEndElement();
@@ -3381,11 +3394,11 @@ namespace Chummer
 						if (LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") != "")
 							strReturn += " (" + LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") + ")";
 						else
-							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 					catch
 					{
-						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 				}
 				return strReturn;
@@ -3435,7 +3448,7 @@ namespace Chummer
                 }
 
 				// Include any Improvements to the Spell Category.
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				intReturn += objImprovementManager.ValueOf(Improvement.ImprovementType.SpellCategory, false, _strCategory);
 
 				return intReturn;
@@ -3484,7 +3497,7 @@ namespace Chummer
                 }
 
 				// Include any Improvements to the Spell Category.
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (objImprovementManager.ValueOf(Improvement.ImprovementType.SpellCategory, false, _strCategory) != 0)
 					strReturn += " + " + DisplayCategory + " (" + objImprovementManager.ValueOf(Improvement.ImprovementType.SpellCategory, false, _strCategory).ToString() + ")";
 
@@ -3608,13 +3621,23 @@ namespace Chummer
 		private List<Gear> _lstGear = new List<Gear>();
 		private readonly Character _objCharacter;
 
-		#region Constructor, Create, Save, and Load Methods
-		public StackedFocus(Character objCharacter)
+        private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
+        private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
+
+        #region Constructor, Create, Save, and Load Methods
+        public StackedFocus(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Focus.
 			_guiID = Guid.NewGuid();
 			_objCharacter = objCharacter;
-		}
+
+            this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
+        }
 
 		/// <summary>
 		/// Save the object's XML to the XmlWriter.
@@ -3645,7 +3668,7 @@ namespace Chummer
 			IXmlNodeList nodGears = objNode.SelectNodes("gears/gear");
 			foreach (IXmlNode nodGear in nodGears)
 			{
-				Gear objGear = new Gear(_objCharacter);
+				Gear objGear = new Gear(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				objGear.Load(nodGear);
 				_lstGear.Add(objGear);
 			}
@@ -3839,11 +3862,12 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         private readonly Character _objCharacter;
 
 		#region Constructor, Create, Save, Load, and Print Methods
-		public Metamagic(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+		public Metamagic(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new piece of Cyberware.
 			_guiID = Guid.NewGuid();
@@ -3852,6 +3876,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
 		/// Create a Metamagic from an XmlNode and return the TreeNodes for it.
@@ -3880,7 +3905,7 @@ namespace Chummer
 				else
 					intRating = _objCharacter.InitiateGrade;
 
-				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (!objImprovementManager.CreateImprovements(objSource, _guiID.ToString(), _nodBonus, true, intRating, DisplayNameShort))
 				{
 					_guiID = Guid.Empty;
@@ -3928,7 +3953,7 @@ namespace Chummer
 		/// <param name="objNode">XmlNode to load.</param>
 		public void Load(IXmlNode objNode)
 		{
-			Improvement objImprovement = new Improvement(displayFactory);
+			Improvement objImprovement = new Improvement(documentFactory, messageDisplay, displayFactory, fileAccess);
 			_guiID = Guid.Parse(objNode["guid"].InnerText);
 			_strName = objNode["name"].InnerText;
 			_strSource = objNode["source"].InnerText;
@@ -4203,11 +4228,12 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         private readonly Character _objCharacter;
 
         #region Constructor, Create, Save, Load, and Print Methods
-        public Art(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+        public Art(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
         {
             // Create the GUID for the new art.
             _guiID = Guid.NewGuid();
@@ -4216,6 +4242,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
         /// Create an Art from an XmlNode and return the TreeNodes for it.
@@ -4238,7 +4265,7 @@ namespace Chummer
             {
                 _nodBonus = objXmlArtNode["bonus"];
 
-                ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+                ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
                 if (!objImprovementManager.CreateImprovements(objSource, _guiID.ToString(), _nodBonus, true, 1, DisplayNameShort))
                 {
                     _guiID = Guid.Empty;
@@ -4280,7 +4307,7 @@ namespace Chummer
         /// <param name="objNode">XmlNode to load.</param>
         public void Load(IXmlNode objNode)
         {
-            Improvement objImprovement = new Improvement(displayFactory);
+            Improvement objImprovement = new Improvement(documentFactory, messageDisplay, displayFactory, fileAccess);
             _guiID = Guid.Parse(objNode["guid"].InnerText);
             _strName = objNode["name"].InnerText;
             _strSource = objNode["source"].InnerText;
@@ -4512,11 +4539,12 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         private readonly Character _objCharacter;
 
         #region Constructor, Create, Save, Load, and Print Methods
-        public Enhancement(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+        public Enhancement(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
         {
             // Create the GUID for the new art.
             _guiID = Guid.NewGuid();
@@ -4525,6 +4553,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
         /// Create an Enhancement from an XmlNode and return the TreeNodes for it.
@@ -4547,7 +4576,7 @@ namespace Chummer
             {
                 _nodBonus = objXmlArtNode["bonus"];
 
-                ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+                ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
                 if (!objImprovementManager.CreateImprovements(objSource, _guiID.ToString(), _nodBonus, true, 1, DisplayNameShort))
                 {
                     _guiID = Guid.Empty;
@@ -4589,7 +4618,7 @@ namespace Chummer
         /// <param name="objNode">XmlNode to load.</param>
         public void Load(IXmlNode objNode)
         {
-            Improvement objImprovement = new Improvement(displayFactory);
+            Improvement objImprovement = new Improvement(documentFactory, messageDisplay, displayFactory, fileAccess);
             _guiID = Guid.Parse(objNode["guid"].InnerText);
             _strName = objNode["name"].InnerText;
             _strSource = objNode["source"].InnerText;
@@ -4847,11 +4876,12 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         private readonly Character _objCharacter;
 
 		#region Constructor, Create, Save, Load, and Print Methods
-		public Power(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+		public Power(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Power.
 			_guiID = Guid.NewGuid();
@@ -4860,6 +4890,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
 		/// <summary>
@@ -4918,7 +4949,7 @@ namespace Chummer
                 string strPowerName = _strName;
                 if (strPowerName.Contains("("))
                     strPowerName = strPowerName.Substring(0, strPowerName.IndexOf("(") - 1);
-                IXmlDocument objXmlDocument = XmlManager.Instance.Load("powers.xml");
+                IXmlDocument objXmlDocument = XmlManager.Instance.Load("powers.xml", fileAccess, documentFactory);
                 IXmlNode objXmlPower = objXmlDocument.SelectSingleNode("/chummer/powers/power[starts-with(./name,\"" + strPowerName + "\")]");
                 _decAdeptWayDiscount = Convert.ToDecimal(objXmlPower["adeptway"].InnerText, GlobalOptions.Instance.CultureInfo);
             }
@@ -4990,7 +5021,7 @@ namespace Chummer
                 IXmlNodeList nodEnhancements = objNode.SelectNodes("enhancements/enhancement");
                 foreach (IXmlNode nodEnhancement in nodEnhancements)
                 {
-                    Enhancement objEnhancement = new Enhancement(_objCharacter, documentFactory, messageDisplay, displayFactory);
+                    Enhancement objEnhancement = new Enhancement(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
                     objEnhancement.Load(nodEnhancement);
                     objEnhancement.Parent = this;
                     _lstEnhancements.Add(objEnhancement);
@@ -5006,7 +5037,7 @@ namespace Chummer
 		{
 			objWriter.WriteStartElement("power");
 			objWriter.WriteElementString("name", DisplayNameShort);
-			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra));
+			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess));
 			objWriter.WriteElementString("pointsperlevel", _decPointsPerLevel.ToString());
             objWriter.WriteElementString("adeptway", _decAdeptWayDiscount.ToString());
             if (_blnLevelsEnabled)
@@ -5132,11 +5163,11 @@ namespace Chummer
 						if (LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") != "")
 							strReturn += " (" + LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") + ")";
 						else
-							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 					catch
 					{
-						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 				}
 
@@ -5873,15 +5904,17 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         #region Create, Save, Load, and Print Methods
-        public MartialArt(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+        public MartialArt(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			_objCharacter = objCharacter;
 
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
 		/// Create a Martial Art from an XmlNode and return the TreeNodes for it.
@@ -5943,7 +5976,7 @@ namespace Chummer
 				IXmlNodeList nodAdvantages = objNode.SelectNodes("martialartadvantages/martialartadvantage");
 				foreach (IXmlNode nodAdvantage in nodAdvantages)
 				{
-					MartialArtAdvantage objAdvantage = new MartialArtAdvantage(_objCharacter, documentFactory, messageDisplay, displayFactory);
+					MartialArtAdvantage objAdvantage = new MartialArtAdvantage(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objAdvantage.Load(nodAdvantage);
 					_lstAdvantages.Add(objAdvantage);
 				}
@@ -6150,9 +6183,10 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         #region Constructor, Create, Save, Load, and Print Methods
-        public MartialArtAdvantage(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+        public MartialArtAdvantage(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Martial Art Advantage.
 			_guiID = Guid.NewGuid();
@@ -6161,6 +6195,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
 		/// Create a Martial Art Advantage from an XmlNode and return the TreeNodes for it.
@@ -6175,7 +6210,7 @@ namespace Chummer
 
 			if (objXmlAdvantageNode["bonus"] != null)
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.MartialArtAdvantage, _guiID.ToString(), objXmlAdvantageNode["bonus"], false, 1, DisplayNameShort))
 				{
 					_guiID = Guid.Empty;
@@ -6597,9 +6632,10 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         #region Constructor, Create, Save, Load, and Print Methods
-        public LimitModifier(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+        public LimitModifier(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
         {
             // Create the GUID for the new Skill Limit Modifier.
             _guiID = Guid.NewGuid();
@@ -6608,6 +6644,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
         /// Create a Skill Limit Modifier from an XmlNode and return the TreeNodes for it.
@@ -6620,7 +6657,7 @@ namespace Chummer
 
             if (objXmlLimitModifierNode["bonus"] != null)
             {
-                ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+                ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
                 if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.MartialArtAdvantage, _guiID.ToString(), objXmlLimitModifierNode["bonus"], false, 1, DisplayNameShort))
                 {
                     _guiID = Guid.Empty;
@@ -7291,9 +7328,10 @@ namespace Chummer
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         #region Constructor, Create, Save, Load, and Print Methods
-        public CritterPower(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+        public CritterPower(Character objCharacter, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			// Create the GUID for the new Power.
 			_guiID = Guid.NewGuid();
@@ -7302,6 +7340,7 @@ namespace Chummer
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
 		/// Create a Critter Power from an XmlNode and return the TreeNodes for it.
@@ -7332,7 +7371,7 @@ namespace Chummer
 			// If the piece grants a bonus, pass the information to the Improvement Manager.
 			if (objXmlPowerNode.InnerXml.Contains("<bonus>"))
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				objImprovementManager.ForcedValue = strForcedValue;
 				if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.CritterPower, _guiID.ToString(), _nodBonus, true, intRating, DisplayNameShort))
 				{
@@ -7423,7 +7462,7 @@ namespace Chummer
 		{
 			objWriter.WriteStartElement("critterpower");
 			objWriter.WriteElementString("name", DisplayNameShort);
-			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra));
+			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess));
 			objWriter.WriteElementString("category", DisplayCategory);
 			objWriter.WriteElementString("type", DisplayType);
 			objWriter.WriteElementString("action", DisplayAction);
@@ -7505,11 +7544,11 @@ namespace Chummer
 						if (LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") != "")
 							strReturn += " (" + LanguageManager.Instance.GetString("String_Attribute" + _strExtra + "Short") + ")";
 						else
-							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+							strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 					catch
 					{
-						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+						strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 					}
 				}
 

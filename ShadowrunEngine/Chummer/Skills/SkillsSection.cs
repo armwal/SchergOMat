@@ -32,9 +32,11 @@ namespace Chummer.Skills
 		private Dictionary<Guid, Skill> _skillValueBackup = new Dictionary<Guid, Skill>();
 
         private IXmlDocumentFactory documentFactory;
+        private IMessageDisplay messageDisplay;
+        private IDisplayFactory displayFactory;
         private IFileAccess fileAccess;
 
-        public SkillsSection(Character character, IFileAccess fileAccess, IXmlDocumentFactory documentFactory)
+        public SkillsSection(Character character, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			_character = character;
 			_character.LOG.PropertyChanged += (sender, args) => KnoChanged();
@@ -43,6 +45,8 @@ namespace Chummer.Skills
 			_character.ImprovementEvent += CharacterOnImprovementEvent;
 
             this.documentFactory = documentFactory;
+            this.messageDisplay = messageDisplay;
+            this.displayFactory = displayFactory;
             this.fileAccess = fileAccess;
         }
 
@@ -93,7 +97,7 @@ namespace Chummer.Skills
 
 					if (_character.Created && skill.LearnedRating > 0)
 					{
-						KnowledgeSkill kno = new KnowledgeSkill(_character, fileAccess, documentFactory)
+						KnowledgeSkill kno = new KnowledgeSkill(_character, fileAccess, documentFactory, messageDisplay, displayFactory)
 						{
 							Type = skill.Name == "Arcana" ? "Academic" : "Professional",
 							WriteableName = skill.Name,
@@ -119,8 +123,8 @@ namespace Chummer.Skills
 				Timekeeper.Finish("load_char_skills_groups");
 
 				Timekeeper.Start("load_char_skills_normal");
-				//Load skills. Because sorting a ObservableCollection is complicated we use a temporery normal list
-				List<Skill> loadingSkills = (from IXmlNode node in skillNode.SelectNodes("skills/skill") let skill = Skill.Load(_character, node) where skill != null select skill).ToList();
+                //Load skills. Because sorting a ObservableCollection is complicated we use a temporery normal list
+                List<Skill> loadingSkills = (from IXmlNode node in skillNode.SelectNodes("skills/skill") let skill = Skill.Load(_character, node, documentFactory, messageDisplay, displayFactory, fileAccess) where skill != null select skill).ToList();
 
 				loadingSkills.Sort(CompareSkills);
 
@@ -132,7 +136,7 @@ namespace Chummer.Skills
                 Timekeeper.Finish("load_char_skills_normal");
 
                 Timekeeper.Start("load_char_skills_kno");
-				List<KnowledgeSkill> knoSkills = (from IXmlNode node in skillNode.SelectNodes("knoskills/skill") let skill = (KnowledgeSkill) Skill.Load(_character, node) where skill != null select skill).ToList();
+				List<KnowledgeSkill> knoSkills = (from IXmlNode node in skillNode.SelectNodes("knoskills/skill") let skill = (KnowledgeSkill) Skill.Load(_character, node, documentFactory, messageDisplay, displayFactory, fileAccess) where skill != null select skill).ToList();
 
 
 				foreach (KnowledgeSkill skill in knoSkills)
@@ -147,7 +151,7 @@ namespace Chummer.Skills
 				foreach (IXmlNode objXmlSkill in objXmlKnowsoftBuffer)
 				{
 					string strName = objXmlSkill["name"].InnerText;
-					KnowsoftSkills.Add(new KnowledgeSkill(_character, strName, fileAccess, documentFactory));
+					KnowsoftSkills.Add(new KnowledgeSkill(_character, strName, fileAccess, documentFactory, messageDisplay, displayFactory));
 				}
 				Timekeeper.Finish("load_char_knowsoft_buffer");
 			}
@@ -155,7 +159,7 @@ namespace Chummer.Skills
 			{
 				IXmlNodeList oldskills = skillNode.SelectNodes("skills/skill");
 
-				List<Skill> tempoerySkillList = (from IXmlNode node in oldskills let skill = Skill.LegacyLoad(_character, node) where skill != null select skill).ToList();
+				List<Skill> tempoerySkillList = (from IXmlNode node in oldskills let skill = Skill.LegacyLoad(_character, node, documentFactory, messageDisplay, displayFactory, fileAccess) where skill != null select skill).ToList();
 
 				List<Skill> unsoredSkills = new List<Skill>();
 
@@ -612,7 +616,7 @@ namespace Chummer.Skills
 				IXmlNode objXmlSkill = objXmlDocument.SelectSingleNode("/chummer/skills/skill[name = \"" + objItem.Value + "\"]");
 
 				//TODO: read from backup
-				Skill objSkill = Skill.FromData(objXmlSkill, c);
+				Skill objSkill = Skill.FromData(objXmlSkill, c, documentFactory, messageDisplay, displayFactory, fileAccess);
 				b.Add(objSkill);
 			}
 

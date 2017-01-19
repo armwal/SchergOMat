@@ -290,9 +290,9 @@ namespace Chummer.Backend.Equipment
 				{
 					ImprovementManager objImprovementManager;
 					if (blnAddImprovements)
-						objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory);
+						objImprovementManager = new ImprovementManager(objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					else
-						objImprovementManager = new ImprovementManager(null, documentFactory, messageDisplay, displayFactory);
+						objImprovementManager = new ImprovementManager(null, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 					objImprovementManager.ForcedValue = strForceValue;
 					if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.Gear, strSource, objXmlGear["bonus"], false, intRating, DisplayNameShort))
@@ -867,7 +867,7 @@ namespace Chummer.Backend.Equipment
 			objWriter.WriteElementString("avail_english", TotalAvail(true, true));
 			objWriter.WriteElementString("cost", TotalCost.ToString());
 			objWriter.WriteElementString("owncost", OwnCost.ToString());
-			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra));
+			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess));
 			objWriter.WriteElementString("bonded", _blnBonded.ToString());
 			objWriter.WriteElementString("equipped", _blnEquipped.ToString());
 			objWriter.WriteElementString("homenode", _blnHomeNode.ToString());
@@ -2254,7 +2254,7 @@ namespace Chummer.Backend.Equipment
 				if (_intRating > 0)
 					strReturn += " (" + LanguageManager.Instance.GetString("String_Rating") + " " + _intRating.ToString() + ")";
 				if (_strExtra != "")
-					strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+					strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 
 				if (_strGearName != "")
 				{

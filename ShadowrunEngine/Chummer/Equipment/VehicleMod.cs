@@ -247,7 +247,7 @@ namespace Chummer.Backend.Equipment
 				IXmlNodeList nodChildren = objNode.SelectNodes("weapons/weapon");
 				foreach (IXmlNode nodChild in nodChildren)
 				{
-					Weapon objWeapon = new Weapon(_objCharacter);
+					Weapon objWeapon = new Weapon(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objWeapon.Load(nodChild, blnCopy);
 					_lstVehicleWeapons.Add(objWeapon);
 				}
@@ -1010,7 +1010,7 @@ namespace Chummer.Backend.Equipment
 				string strReturn = DisplayNameShort;
 
 				if (_strExtra != "")
-					strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+					strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 				if (_intRating > 0)
 					strReturn += " (" + LanguageManager.Instance.GetString("String_Rating") + " " + _intRating.ToString() + ")";
 				return strReturn;

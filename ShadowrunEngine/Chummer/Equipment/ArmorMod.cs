@@ -118,7 +118,7 @@ namespace Chummer.Backend.Equipment
 
 			if (objXmlArmorNode["bonus"] != null && !blnSkipCost)
 			{
-				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager objImprovementManager = new ImprovementManager(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				if (!objImprovementManager.CreateImprovements(Improvement.ImprovementSource.ArmorMod, _guiID.ToString(), objXmlArmorNode["bonus"], false, intRating, DisplayNameShort))
 				{
 					_guiID = Guid.Empty;
@@ -316,7 +316,7 @@ namespace Chummer.Backend.Equipment
 			objWriter.WriteElementString("page", Page);
 			objWriter.WriteElementString("included", _blnIncludedInArmor.ToString());
 			objWriter.WriteElementString("equipped", _blnEquipped.ToString());
-			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra));
+			objWriter.WriteElementString("extra", LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess));
 			if (_objCharacter.Options.PrintNotes)
 				objWriter.WriteElementString("notes", _strNotes);
 			objWriter.WriteEndElement();
@@ -407,7 +407,7 @@ namespace Chummer.Backend.Equipment
 				if (_intRating > 0)
 					strReturn += " (" + LanguageManager.Instance.GetString("String_Rating") + " " + _intRating.ToString() + ")";
 				if (_strExtra != "")
-					strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra) + ")";
+					strReturn += " (" + LanguageManager.Instance.TranslateExtra(_strExtra, documentFactory, fileAccess) + ")";
 				return strReturn;
 			}
 		}

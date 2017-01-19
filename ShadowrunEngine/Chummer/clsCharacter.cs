@@ -331,20 +331,20 @@ namespace Chummer
         /// </summary>
         public Character(IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
         {
-            _attBOD = new CharacterAttrib("BOD", documentFactory, messageDisplay, displayFactory);
-            _attAGI = new CharacterAttrib("AGI", documentFactory, messageDisplay, displayFactory);
-            _attREA = new CharacterAttrib("REA", documentFactory, messageDisplay, displayFactory);
-            _attSTR = new CharacterAttrib("STR", documentFactory, messageDisplay, displayFactory);
-            _attCHA = new CharacterAttrib("CHA", documentFactory, messageDisplay, displayFactory);
-            _attINT = new CharacterAttrib("INT", documentFactory, messageDisplay, displayFactory);
-            _attLOG = new CharacterAttrib("LOG", documentFactory, messageDisplay, displayFactory);
-            _attWIL = new CharacterAttrib("WIL", documentFactory, messageDisplay, displayFactory);
-            _attINI = new CharacterAttrib("INI", documentFactory, messageDisplay, displayFactory);
-            _attEDG = new CharacterAttrib("EDG", documentFactory, messageDisplay, displayFactory);
-            _attMAG = new CharacterAttrib("MAG", documentFactory, messageDisplay, displayFactory);
-            _attRES = new CharacterAttrib("RES", documentFactory, messageDisplay, displayFactory);
-            _attESS = new CharacterAttrib("ESS", documentFactory, messageDisplay, displayFactory);
-            _attDEP = new CharacterAttrib("DEP", documentFactory, messageDisplay, displayFactory);
+            _attBOD = new CharacterAttrib("BOD", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attAGI = new CharacterAttrib("AGI", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attREA = new CharacterAttrib("REA", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attSTR = new CharacterAttrib("STR", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attCHA = new CharacterAttrib("CHA", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attINT = new CharacterAttrib("INT", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attLOG = new CharacterAttrib("LOG", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attWIL = new CharacterAttrib("WIL", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attINI = new CharacterAttrib("INI", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attEDG = new CharacterAttrib("EDG", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attMAG = new CharacterAttrib("MAG", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attRES = new CharacterAttrib("RES", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attESS = new CharacterAttrib("ESS", documentFactory, messageDisplay, displayFactory, fileAccess);
+            _attDEP = new CharacterAttrib("DEP", documentFactory, messageDisplay, displayFactory, fileAccess);
 
             _attBOD._objCharacter = this;
             _attAGI._objCharacter = this;
@@ -360,9 +360,9 @@ namespace Chummer
             _attRES._objCharacter = this;
             _attESS._objCharacter = this;
 			_attDEP._objCharacter = this;
-			_objImprovementManager = new ImprovementManager(this, documentFactory, messageDisplay, displayFactory);
+			_objImprovementManager = new ImprovementManager(this, documentFactory, messageDisplay, displayFactory, fileAccess);
 			_objOptions = new CharacterOptions(this, documentFactory, messageDisplay, fileAccess);
-			SkillsSection = new SkillsSection(this, fileAccess, documentFactory);
+			SkillsSection = new SkillsSection(this, documentFactory, messageDisplay, displayFactory, fileAccess);
 			SkillsSection.Reset();
 
             this.documentFactory = documentFactory;
@@ -1220,7 +1220,7 @@ namespace Chummer
             IXmlNodeList objXmlImprovementList = objXmlDocument.SelectNodes("/character/improvements/improvement");
             foreach (IXmlNode objXmlImprovement in objXmlImprovementList)
             {
-                Improvement objImprovement = new Improvement(displayFactory);
+                Improvement objImprovement = new Improvement(documentFactory, messageDisplay, displayFactory, fileAccess);
                 objImprovement.Load(objXmlImprovement);
                 _lstImprovements.Add(objImprovement);
             }
@@ -1234,7 +1234,7 @@ namespace Chummer
             {
                 if (objXmlQuality["name"] != null)
                 {
-                    Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory);
+                    Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                     objQuality.Load(objXmlQuality);
                     _lstQualities.Add(objQuality);
                 }
@@ -1405,7 +1405,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/spells/spell");
             foreach (IXmlNode objXmlSpell in objXmlNodeList)
             {
-                Spell objSpell = new Spell(this, documentFactory, messageDisplay, displayFactory);
+                Spell objSpell = new Spell(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 objSpell.Load(objXmlSpell);
                 _lstSpells.Add(objSpell);
             }
@@ -1429,7 +1429,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/stackedfoci/stackedfocus");
             foreach (IXmlNode objXmlStack in objXmlNodeList)
             {
-                StackedFocus objStack = new StackedFocus(this);
+                StackedFocus objStack = new StackedFocus(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 objStack.Load(objXmlStack);
                 _lstStackedFoci.Add(objStack);
             }
@@ -1454,7 +1454,7 @@ namespace Chummer
 
             foreach (ListItem objItem in lstPowerOrder)
             {
-                Power objPower = new Power(this, documentFactory, messageDisplay, displayFactory);
+                Power objPower = new Power(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 IXmlNode objNode = objXmlDocument.SelectSingleNode("/character/powers/power[name = " + CleanXPath(objItem.Name) + " and extra = " + CleanXPath(objItem.Value) + "]");
                 objPower.Load(objNode);
                 _lstPowers.Add(objPower);
@@ -1467,7 +1467,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/spirits/spirit");
             foreach (IXmlNode objXmlSpirit in objXmlNodeList)
             {
-                Spirit objSpirit = new Spirit(this);
+                Spirit objSpirit = new Spirit(this, documentFactory, fileAccess);
                 objSpirit.Load(objXmlSpirit);
                 _lstSpirits.Add(objSpirit);
             }
@@ -1491,7 +1491,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/martialarts/martialart");
             foreach (IXmlNode objXmlArt in objXmlNodeList)
             {
-                MartialArt objMartialArt = new MartialArt(this, documentFactory, messageDisplay, displayFactory);
+                MartialArt objMartialArt = new MartialArt(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 objMartialArt.Load(objXmlArt);
                 _lstMartialArts.Add(objMartialArt);
             }
@@ -1515,7 +1515,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/limitmodifiers/limitmodifier");
             foreach (IXmlNode objXmlLimit in objXmlNodeList)
             {
-                LimitModifier obLimitModifier = new LimitModifier(this, documentFactory, messageDisplay, displayFactory);
+                LimitModifier obLimitModifier = new LimitModifier(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 obLimitModifier.Load(objXmlLimit);
                 _lstLimitModifiers.Add(obLimitModifier);
             }
@@ -1574,7 +1574,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/metamagics/metamagic");
             foreach (IXmlNode objXmlMetamagic in objXmlNodeList)
             {
-                Metamagic objMetamagic = new Metamagic(this, documentFactory, messageDisplay, displayFactory);
+                Metamagic objMetamagic = new Metamagic(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 objMetamagic.Load(objXmlMetamagic);
                 _lstMetamagics.Add(objMetamagic);
             }
@@ -1586,7 +1586,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/arts/art");
             foreach (IXmlNode objXmlArt in objXmlNodeList)
             {
-                Art objArt = new Art(this, documentFactory, messageDisplay, displayFactory);
+                Art objArt = new Art(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 objArt.Load(objXmlArt);
                 _lstArts.Add(objArt);
             }
@@ -1598,7 +1598,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/enhancements/enhancement");
             foreach (IXmlNode objXmlEnhancement in objXmlNodeList)
             {
-                Enhancement objEnhancement = new Enhancement(this, documentFactory, messageDisplay, displayFactory);
+                Enhancement objEnhancement = new Enhancement(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 objEnhancement.Load(objXmlEnhancement);
                 _lstEnhancements.Add(objEnhancement);
             }
@@ -1610,7 +1610,7 @@ namespace Chummer
 			objXmlNodeList = objXmlDocument.SelectNodes("/character/critterpowers/critterpower");
             foreach (IXmlNode objXmlPower in objXmlNodeList)
             {
-                CritterPower objPower = new CritterPower(this, documentFactory, messageDisplay, displayFactory);
+                CritterPower objPower = new CritterPower(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                 objPower.Load(objXmlPower);
                 _lstCritterPowers.Add(objPower);
             }
@@ -1739,7 +1739,7 @@ namespace Chummer
                 ITreeNode objNode = displayFactory.CreateTreeNode();
                 List<Weapon> objWeapons = new List<Weapon>();
                 List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
-                Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory);
+                Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory, fileAccess);
 
                 objQuality.Create(objXmlDwarfQuality, this, QualitySource.Metatype, objNode, objWeapons, objWeaponNodes);
                 this._lstQualities.Add(objQuality);
@@ -2660,33 +2660,33 @@ namespace Chummer
             _blnCritterEnabled = false;
 
             // Reset Attributes.
-            _attBOD = new CharacterAttrib("BOD", documentFactory, messageDisplay, displayFactory);
+            _attBOD = new CharacterAttrib("BOD", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attBOD._objCharacter = this;
-            _attAGI = new CharacterAttrib("AGI", documentFactory, messageDisplay, displayFactory);
+            _attAGI = new CharacterAttrib("AGI", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attAGI._objCharacter = this;
-            _attREA = new CharacterAttrib("REA", documentFactory, messageDisplay, displayFactory);
+            _attREA = new CharacterAttrib("REA", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attREA._objCharacter = this;
-            _attSTR = new CharacterAttrib("STR", documentFactory, messageDisplay, displayFactory);
+            _attSTR = new CharacterAttrib("STR", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attSTR._objCharacter = this;
-            _attCHA = new CharacterAttrib("CHA", documentFactory, messageDisplay, displayFactory);
+            _attCHA = new CharacterAttrib("CHA", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attCHA._objCharacter = this;
-            _attINT = new CharacterAttrib("INT", documentFactory, messageDisplay, displayFactory);
+            _attINT = new CharacterAttrib("INT", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attINT._objCharacter = this;
-            _attLOG = new CharacterAttrib("LOG", documentFactory, messageDisplay, displayFactory);
+            _attLOG = new CharacterAttrib("LOG", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attLOG._objCharacter = this;
-            _attWIL = new CharacterAttrib("WIL", documentFactory, messageDisplay, displayFactory);
+            _attWIL = new CharacterAttrib("WIL", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attWIL._objCharacter = this;
-            _attINI = new CharacterAttrib("INI", documentFactory, messageDisplay, displayFactory);
+            _attINI = new CharacterAttrib("INI", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attINI._objCharacter = this;
-            _attEDG = new CharacterAttrib("EDG", documentFactory, messageDisplay, displayFactory);
+            _attEDG = new CharacterAttrib("EDG", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attEDG._objCharacter = this;
-            _attMAG = new CharacterAttrib("MAG", documentFactory, messageDisplay, displayFactory);
+            _attMAG = new CharacterAttrib("MAG", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attMAG._objCharacter = this;
-            _attRES = new CharacterAttrib("RES", documentFactory, messageDisplay, displayFactory);
+            _attRES = new CharacterAttrib("RES", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attRES._objCharacter = this;
-            _attESS = new CharacterAttrib("ESS", documentFactory, messageDisplay, displayFactory);
+            _attESS = new CharacterAttrib("ESS", documentFactory, messageDisplay, displayFactory, fileAccess);
             _attESS._objCharacter = this;
-			_attDEP = new CharacterAttrib("DEP", documentFactory, messageDisplay, displayFactory);
+			_attDEP = new CharacterAttrib("DEP", documentFactory, messageDisplay, displayFactory, fileAccess);
 			_attDEP._objCharacter = this;
 			_blnMAGEnabled = false;
             _blnRESEnabled = false;
@@ -5121,7 +5121,7 @@ namespace Chummer
 					intReturn += Convert.ToInt32(dblAwareness);
 				}
 
-				ImprovementManager manager = new ImprovementManager(this, documentFactory, messageDisplay, displayFactory);
+				ImprovementManager manager = new ImprovementManager(this, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 
                 return intReturn + manager.ValueOf(Improvement.ImprovementType.PublicAwareness);
@@ -7048,7 +7048,7 @@ namespace Chummer
                     }
 
                     // Convert the item to the new Quality class.
-                    Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory);
+                    Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory, fileAccess);
                     List<Weapon> objWeapons = new List<Weapon>();
                     List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
                     ITreeNode objNode = displayFactory.CreateTreeNode();
@@ -7090,7 +7090,7 @@ namespace Chummer
                     ITreeNode objNode = displayFactory.CreateTreeNode();
                     List<Weapon> objWeapons = new List<Weapon>();
                     List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
-                    Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory);
+                    Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory, fileAccess);
 
                     if (objXmlMetatypeQuality.Attributes["select"] != null)
                         strForceValue = objXmlMetatypeQuality.Attributes["select"].InnerText;
@@ -7126,7 +7126,7 @@ namespace Chummer
                     ITreeNode objNode = displayFactory.CreateTreeNode();
                     List<Weapon> objWeapons = new List<Weapon>();
                     List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
-                    Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory);
+                    Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory, fileAccess);
 
                     if (objXmlMetatypeQuality.Attributes["select"] != null)
                         strForceValue = objXmlMetatypeQuality.Attributes["select"].InnerText;
@@ -7167,7 +7167,7 @@ namespace Chummer
                         ITreeNode objNode = displayFactory.CreateTreeNode();
                         List<Weapon> objWeapons = new List<Weapon>();
                         List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
-                        Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory);
+                        Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory, fileAccess);
 
                         if (objXmlMetatypeQuality.Attributes["select"] != null)
                             strForceValue = objXmlMetatypeQuality.Attributes["select"].InnerText;
@@ -7203,7 +7203,7 @@ namespace Chummer
                         ITreeNode objNode = displayFactory.CreateTreeNode();
                         List<Weapon> objWeapons = new List<Weapon>();
                         List<ITreeNode> objWeaponNodes = new List<ITreeNode>();
-                        Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory);
+                        Quality objQuality = new Quality(this, documentFactory, messageDisplay, displayFactory, fileAccess);
 
                         if (objXmlMetatypeQuality.Attributes["select"] != null)
                             strForceValue = objXmlMetatypeQuality.Attributes["select"].InnerText;

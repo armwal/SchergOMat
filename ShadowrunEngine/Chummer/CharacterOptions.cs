@@ -184,6 +184,7 @@ namespace Chummer
 		{
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
+            this.fileAccess = fileAccess;
 
             _objBookDoc = documentFactory.CreateNew();
 			_character = character;

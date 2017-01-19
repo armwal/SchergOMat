@@ -310,7 +310,7 @@ namespace Chummer
 		public ExpenseLogEntry()
 		{
 			_guiID = Guid.NewGuid();
-			LanguageManager.Instance.Load("en-us", null);
+			//LanguageManager.Instance.Load("en-us", null);
 		}
 
 		/// <summary>

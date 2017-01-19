@@ -69,7 +69,8 @@ namespace Chummer.Skills
 
         public bool ForcedName { get; }
 
-		public KnowledgeSkill(Character character, IFileAccess fileAccess, IXmlDocumentFactory documentFactory) : base(character, (string)null)
+		public KnowledgeSkill(Character character, IFileAccess fileAccess, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory) 
+            : base(character, (string)null, documentFactory, messageDisplay, displayFactory, fileAccess)
 		{
 			AttributeObject = character.GetAttribute("LOG");
 			AttributeObject.PropertyChanged += OnLinkedAttributeChanged;
@@ -80,7 +81,8 @@ namespace Chummer.Skills
             this.fileAccess = fileAccess;
         }
 
-		public KnowledgeSkill(Character character, string forcedName, IFileAccess fileAccess, IXmlDocumentFactory documentFactory) : this(character, fileAccess, documentFactory)
+		public KnowledgeSkill(Character character, string forcedName, IFileAccess fileAccess, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory) 
+            : this(character, fileAccess, documentFactory, messageDisplay, displayFactory)
 		{
 			WriteableName = forcedName;
 			ForcedName = true;

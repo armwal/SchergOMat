@@ -38,6 +38,7 @@ namespace Chummer.Skills
         private IXmlDocumentFactory documentFactory;
         private IMessageDisplay messageDisplay;
         private IDisplayFactory displayFactory;
+        private IFileAccess fileAccess;
 
         public void WriteTo(IXmlWriter writer)
 		{
@@ -148,24 +149,24 @@ namespace Chummer.Skills
 
 				if (node["exotic"]?.InnerText == "Yes")
 				{
-					ExoticSkill exotic = new ExoticSkill(character, node, fileAccess, documentFactory);
+					ExoticSkill exotic = new ExoticSkill(character, node, fileAccess, documentFactory, messageDisplay, displayFactory);
 					exotic.Load(n);
 					skill = exotic;
 				}
 				else
 				{
-					skill = new Skill(character, node, documentFactory, messageDisplay, displayFactory);
+					skill = new Skill(character, node, documentFactory, messageDisplay, displayFactory, fileAccess);
 				}
 			}
 			else //This is ugly but i'm not sure how to make it pretty
 			{
 				if (n["forced"] != null)
 				{
-					skill = new KnowledgeSkill(character, n["name"].InnerText, fileAccess, documentFactory);
+					skill = new KnowledgeSkill(character, n["name"].InnerText, fileAccess, documentFactory, messageDisplay, displayFactory);
 				}
 				else
 				{
-					KnowledgeSkill knoSkill = new KnowledgeSkill(character, fileAccess, documentFactory);
+					KnowledgeSkill knoSkill = new KnowledgeSkill(character, fileAccess, documentFactory, messageDisplay, displayFactory);
 					knoSkill.Load(n);
 					skill = knoSkill;
 				}
@@ -212,7 +213,7 @@ namespace Chummer.Skills
 
 			if (n.TryCheckValue("knowledge", "True"))
 			{
-				Skills.KnowledgeSkill kno = new KnowledgeSkill(character, fileAccess, documentFactory);
+				Skills.KnowledgeSkill kno = new KnowledgeSkill(character, fileAccess, documentFactory, messageDisplay, displayFactory);
 				kno.WriteableName = n["name"].InnerText;
 				kno.Base = baseRating;
 				kno.Karma = karmaRating;
@@ -278,7 +279,7 @@ namespace Chummer.Skills
 			if (n["exotic"] != null && n["exotic"].InnerText == "Yes")
 			{
 				//load exotic skill
-				ExoticSkill s2 = new ExoticSkill(character, n, fileAccess, documentFactory);
+				ExoticSkill s2 = new ExoticSkill(character, n, fileAccess, documentFactory, messageDisplay, displayFactory);
 				s = s2;
 			}
 			else
@@ -305,13 +306,13 @@ namespace Chummer.Skills
 					//TODO INIT SKILL
 					if (Debugger.IsAttached) Debugger.Break();
 
-					KnowledgeSkill s2 = new KnowledgeSkill(character, fileAccess, documentFactory);
+					KnowledgeSkill s2 = new KnowledgeSkill(character, fileAccess, documentFactory, messageDisplay, displayFactory);
 
 					s = s2;
 				}
 				else
 				{
-					Skill s2 = new Skill(character, n, documentFactory, messageDisplay, displayFactory);
+					Skill s2 = new Skill(character, n, documentFactory, messageDisplay, displayFactory, fileAccess);
 					//TODO INIT SKILL
 
 					s = s2;
@@ -329,7 +330,7 @@ namespace Chummer.Skills
 			return s;
 		}
 
-		protected Skill(Character character, string group, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory)
+		protected Skill(Character character, string group, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess)
 		{
 			_character = character;
 			_group = group;
@@ -347,11 +348,13 @@ namespace Chummer.Skills
             this.documentFactory = documentFactory;
             this.messageDisplay = messageDisplay;
             this.displayFactory = displayFactory;
+            this.fileAccess = fileAccess;
         }
 
 
 		//load from data
-		protected Skill(Character character, IXmlNode n, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory) : this(character, n["skillgroup"].InnerText, documentFactory, messageDisplay, displayFactory)
+		protected Skill(Character character, IXmlNode n, IXmlDocumentFactory documentFactory, IMessageDisplay messageDisplay, IDisplayFactory displayFactory, IFileAccess fileAccess) 
+            : this(character, n["skillgroup"].InnerText, documentFactory, messageDisplay, displayFactory, fileAccess)
 			//Ugly hack, needs by then
 		{
 			_name = n["name"].InnerText; //No need to catch errors (for now), if missing we are fsked anyway
@@ -371,7 +374,7 @@ namespace Chummer.Skills
 			{
 				SuggestedSpecializations.Add(ListItem.AutoXml(node.InnerText, node));
 			}
-		}
+        }
 
 		#endregion
 
@@ -631,7 +634,7 @@ namespace Chummer.Skills
 					{
 						s.Append("\n");
 						s.AppendFormat("{0} {1} ", cyberware.Location, cyberware.DisplayNameShort);
-						if (cyberware.Grade != GlobalOptions.CyberwareGrades.GetGrade("Standard"))
+						if (cyberware.Grade != GlobalOptions.GetCyberwareGrades(documentFactory, fileAccess).GetGrade("Standard"))
 						{
 							s.AppendFormat("({0}) ", cyberware.Grade.DisplayName);
 						}
@@ -836,7 +839,7 @@ namespace Chummer.Skills
 			}
 
 
-			ImprovementManager manager = new ImprovementManager(CharacterObject, documentFactory, messageDisplay, displayFactory);
+			ImprovementManager manager = new ImprovementManager(CharacterObject, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 			int skillWireRating = manager.ValueOf(Improvement.ImprovementType.Skillwire);
 			if ((skillWireRating > 0 || IsKnowledgeSkill) && CharacterObject.SkillsoftAccess)

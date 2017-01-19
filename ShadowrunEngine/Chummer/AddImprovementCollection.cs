@@ -711,7 +711,7 @@ namespace Chummer.Classes
 			//Log.Info("_strSelectedValue = " + SelectedValue);
 			//Log.Info("SourceName = " + SourceName);
 
-			LimitModifier objLimitMod = new LimitModifier(_objCharacter, documentFactory, messageDisplay, displayFactory);
+			LimitModifier objLimitMod = new LimitModifier(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			// string strBonus = bonusNode["value"].InnerText;
 			int intBonus = intAug;
 			string strName = _strFriendlyName;
@@ -1119,7 +1119,7 @@ namespace Chummer.Classes
 			SelectedValue = name;
 
 
-			KnowledgeSkill skill = new KnowledgeSkill(_objCharacter, name, fileAccess, documentFactory);
+			KnowledgeSkill skill = new KnowledgeSkill(_objCharacter, name, fileAccess, documentFactory, messageDisplay, displayFactory);
 
 			bool knowsoft = bonusNode.TryCheckValue("require", "skilljack");
 
@@ -1380,7 +1380,7 @@ namespace Chummer.Classes
 												 "\"]");
 
             ITreeNode objNode = displayFactory.CreateTreeNode();
-			MartialArt objMartialArt = new MartialArt(_objCharacter, documentFactory, messageDisplay, displayFactory);
+			MartialArt objMartialArt = new MartialArt(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			objMartialArt.Create(objIXmlArt, objNode, _objCharacter);
 			objMartialArt.IsQuality = true;
 			_objCharacter.MartialArts.Add(objMartialArt);
@@ -1391,7 +1391,7 @@ namespace Chummer.Classes
 		{
 			//Log.Info("limitmodifier");
 			//Log.Info("limitmodifier = " + bonusNode.OuterXml.ToString());
-			LimitModifier objLimitMod = new LimitModifier(_objCharacter, documentFactory, messageDisplay, displayFactory);
+			LimitModifier objLimitMod = new LimitModifier(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 			string strLimit = bonusNode["limit"].InnerText;
 			string strBonus = bonusNode["value"].InnerText;
 			if (strBonus == "Rating")
@@ -2625,7 +2625,7 @@ namespace Chummer.Classes
 				// Check if the character already has this power
 				//Log.Info("strSelection = " + strSelection);
 				bool blnHasPower = false;
-				Power objPower = new Power(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				Power objPower = new Power(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				foreach (Power power in _objCharacter.Powers)
 				{
 					if (power.Name == strPowerNameLimit)
@@ -2663,7 +2663,7 @@ namespace Chummer.Classes
 				{
 					//Log.Info("Adding Power " + strPowerName);
 					// If no, add the power and mark it free or give it free levels
-					objPower = new Power(_objCharacter, documentFactory, messageDisplay, displayFactory);
+					objPower = new Power(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					_objCharacter.Powers.Add(objPower);
 
                     // Get the Power information
@@ -3102,7 +3102,7 @@ namespace Chummer.Classes
 					}
 
 					// If no, add the power and mark it free or give it free levels
-					Power objPower = new Power(_objCharacter, documentFactory, messageDisplay, displayFactory);
+					Power objPower = new Power(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					bool blnHasPower = false;
 
 					foreach (Power power in _objCharacter.Powers)
@@ -3880,7 +3880,7 @@ namespace Chummer.Classes
 			IXmlNode objXmlPowerNode =
 				objXmlDocument.SelectSingleNode("/chummer/powers/power[name = \"" + selected + "\"]");
             ITreeNode objPowerNode = displayFactory.CreateTreeNode();
-			CritterPower objPower = new CritterPower(_objCharacter, documentFactory, messageDisplay, displayFactory);
+			CritterPower objPower = new CritterPower(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 
 			objPower.Create(objXmlPowerNode, _objCharacter, objPowerNode, 0, strForcedValue);
 			_objCharacter.CritterPowers.Add(objPower);
@@ -3893,7 +3893,7 @@ namespace Chummer.Classes
 			{
 				IXmlNode objXmlCritterPower = objXmlDocument.SelectSingleNode("/chummer/powers/power[name = \"" + objXmlPower.InnerText + "\"]");
                 ITreeNode objPowerNode = displayFactory.CreateTreeNode();
-				CritterPower objPower = new CritterPower(_objCharacter, documentFactory, messageDisplay, displayFactory);
+				CritterPower objPower = new CritterPower(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 				string strForcedValue = "";
 				int intRating = 0;
 				if (objXmlPower.Attributes != null && objXmlPower.Attributes.Count() > 0)
@@ -4019,7 +4019,7 @@ namespace Chummer.Classes
 				if (blnAddQuality)
 				{
                     ITreeNode objAddQualityNode = displayFactory.CreateTreeNode();
-					Quality objAddQuality = new Quality(_objCharacter, documentFactory, messageDisplay, displayFactory);
+					Quality objAddQuality = new Quality(_objCharacter, documentFactory, messageDisplay, displayFactory, fileAccess);
 					objAddQuality.Create(objXmlSelectedQuality, _objCharacter, QualitySource.Selected, objAddQualityNode, null, null, strForceValue);
 
 					bool blnFree = (objXmlAddQuality.Attributes["contributetobp"] == null ||
